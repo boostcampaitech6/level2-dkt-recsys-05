@@ -1,5 +1,5 @@
 ### python 컴파일에 필요한 패키지들을 설치
-apt install curl libbz2-dev libssl-dev libsqlite3-dev liblzma-dev libffi-dev libncursesw5-dev libreadline-dev
+apt install curl libbz2-dev libssl-dev libsqlite3-dev liblzma-dev libffi-dev libncursesw5-dev libreadline-dev build-essential
 
 ### pyenv 설치
 curl https://pyenv.run | bash

@@ -10,6 +10,10 @@ eval "$(pyenv init -)"' >> ~/.bashrc
 
 source ~/.bashrc
 
+### locale 설정
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
+
 ### python 3.10.13 설치
 pyenv install 3.10.13
 pyenv global 3.10.13

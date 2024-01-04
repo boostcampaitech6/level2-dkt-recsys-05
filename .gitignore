@@ -176,4 +176,22 @@ pyrightconfig.json
 # csv file
 *.csv
 
+# .gz file
+*.gz
+
+# .vscode-server folder
+/.vscode-server
+
+# logs
+.bash_history
+.gitconfig
+.netrc
+.profile
+.viminfo
+.wget-hsts
+
+# conda
+/.conda
+
+
 # End of https://www.toptal.com/developers/gitignore/api/python

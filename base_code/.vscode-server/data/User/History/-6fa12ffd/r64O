@@ -1,5 +1,0 @@
-[default]
-entity = teemo-dkt
-project = dkt_jsj
-base_url = https://api.wandb.ai
-

@@ -194,7 +194,7 @@ pyrightconfig.json
 /.conda
 
 # wandb
-/base_code/wandb
+/**/wandb
 /base_code/.config
 
 # .bashrc

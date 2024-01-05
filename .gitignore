@@ -173,4 +173,31 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
+# csv file
+*.csv
+
+# .gz file
+*.gz
+
+# .vscode-server folder
+/.vscode-server
+
+# logs
+.bash_history
+.gitconfig
+.netrc
+.profile
+.viminfo
+.wget-hsts
+
+# conda
+/.conda
+
+# wandb
+/base_code/wandb
+/base_code/.config
+
+# .bashrc
+/.bashrc*
+
 # End of https://www.toptal.com/developers/gitignore/api/python

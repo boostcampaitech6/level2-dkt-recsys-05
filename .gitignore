@@ -201,3 +201,7 @@ pyrightconfig.json
 /.bashrc*
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+# asset, models
+/base_code/code/asset/
+/base_code/code/models/

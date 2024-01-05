@@ -1368,6 +1368,16 @@ files = [
 ]
 
 [[package]]
+name = "lit"
+version = "17.0.6"
+description = "A Software Testing Tool"
+optional = false
+python-versions = "*"
+files = [
+    {file = "lit-17.0.6.tar.gz", hash = "sha256:dfa9af9b55fc4509a56be7bf2346f079d7f4a242d583b9f2e0b078fd0abae31b"},
+]
+
+[[package]]
 name = "markupsafe"
 version = "2.1.3"
 description = "Safely add untrusted strings to HTML/XML markup."
@@ -3658,3 +3668,9 @@ scikit-learn = ["scikit-learn"]
 lock-version = "2.0"
 python-versions = "^3.10"
 content-hash = "80ce44f1d51ec4bae72b0d3c52e6fa8faa37cea01b57ba72ba9f74936fb635d9"
+
+[metadata]
+lock-version = "2.0"
+python-versions = "^3.10"
+content-hash = "23417b553b21f4ad40e7380ec0825a76f4e67492f05bdcd517c3bd2d87fcec39"
+

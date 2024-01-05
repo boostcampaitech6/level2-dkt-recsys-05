@@ -15,6 +15,7 @@ logger = get_logger(logging_conf)
 
 def main(args):
     wandb.login()
+    wandb.init(config=vars(args))
     set_seeds(args.seed)
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     

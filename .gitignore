@@ -194,10 +194,14 @@ pyrightconfig.json
 /.conda
 
 # wandb
-/base_code/wandb
+/**/wandb
 /base_code/.config
 
 # .bashrc
 /.bashrc*
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+# asset, models
+/base_code/code/asset/
+/base_code/code/models/

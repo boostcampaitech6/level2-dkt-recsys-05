@@ -1,6 +1,7 @@
 ### python 컴파일에 필요한 패키지들을 설치
-PACKAGES='curl libbz2-dev libssl-dev libsqlite3-dev liblzma-dev libffi-dev libncursesw5-dev libreadline-dev build-essential wget locale ilibgdbm-dev libnss3-dev zlib1g-dev'
-apt install $PACKAGES 
+PACKAGES='curl libbz2-dev libssl-dev libsqlite3-dev liblzma-dev libffi-dev libncursesw5-dev libreadline-dev build-essential wget locales ilibgdbm-dev libnss3-dev zlib1g-dev'
+apt update
+apt install $PACKAGES -y
 curl https://pyenv.run | bash
 
 ### PATH에 pyenv 등록

@@ -41,11 +41,12 @@ if __name__ == "__main__":
         model.train()
         n_batch = dataset.__len__() // args.batch_size + 1
         running_loss = 0.0
-        for _ in range(n_batch):
+        for _ in range(1):
             batch = next(iter(dataloader))
+            print(batch)
             batch = [tensor.to(device) for tensor in batch]
             optimizer.zero_grad()
-            loss = model(batch)
+            loss = model(batch[0], batch[1], batch[2])
             loss.backward()
             optimizer.step()
             running_loss += loss.item()

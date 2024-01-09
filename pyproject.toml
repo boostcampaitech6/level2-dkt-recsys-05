@@ -24,6 +24,7 @@ xgboost = "^2.0.3"
 lightgbm = "4.1.0"
 ray = "2.6.3"
 iprogress = "^0.4"
+polars = "^0.20.3"
 
 [build-system]
 requires = ["poetry-core"]

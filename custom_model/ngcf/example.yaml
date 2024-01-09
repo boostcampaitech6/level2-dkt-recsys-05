@@ -1,0 +1,16 @@
+seed: 42
+use_cuda_if_available: "true"
+data_dir: "/data/ephemeral/home/dkt/data"
+output_dir: "./outputs/"
+hidden_dim: 64
+dropout: 0.2
+layers: 
+- 64
+- 64
+batch_size: 2
+alpha:
+n_epochs: 1
+lr: 0.001
+model_dir: "./models/"
+model_name: "best_model.pt"
+mode: "Train"

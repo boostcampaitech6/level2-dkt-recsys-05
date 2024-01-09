@@ -33,23 +33,25 @@ class TransformerDataset(Dataset):
         start_index = max(end_index - self.max_seq_len, start_index)
         seq_len = end_index - start_index
 
-        # 0으로 채워진 output tensor 제작                  
-        cate_feature = torch.zeros(self.max_seq_len, len(self.cate_cols), dtype=torch.long)
-        cont_feature = torch.zeros(self.max_seq_len, len(self.cont_cols), dtype=torch.float)
-        mask = torch.zeros(self.max_seq_len, dtype=torch.int16)
-       
-        # tensor에 값 채워넣기
-        cate_feature[-seq_len:] = torch.ShortTensor(self.cate_features[start_index:end_index]) # 16bit signed integer
-        cont_feature[-seq_len:] = torch.HalfTensor(self.cont_features[start_index:end_index]) # 16bit float
-        mask[-seq_len:] = 1        
-            
-        # target은 꼭 cont_feature의 맨 뒤에 놓자
-        target = torch.FloatTensor([cont_feature[-1, -1]])
+        with torch.device(self.device):
+            # 0으로 채워진 output tensor 제작                  
+            cate_feature = torch.zeros(self.max_seq_len, len(self.cate_cols), dtype=torch.long)
+            cont_feature = torch.zeros(self.max_seq_len, len(self.cont_cols), dtype=torch.float)
+            mask = torch.zeros(self.max_seq_len, dtype=torch.int16)
+        
+            # tensor에 값 채워넣기
+            cate_feature[-seq_len:] = torch.ShortTensor(self.cate_features[start_index:end_index]) # 16bit signed integer
+            cont_feature[-seq_len:] = torch.HalfTensor(self.cont_features[start_index:end_index]) # 16bit float
+            mask[-seq_len:] = 1        
+                
+            # target은 꼭 cont_feature의 맨 뒤에 놓자
+            target = torch.cuda.FloatTensor([cont_feature[-1, -1]])
 
         # data leakage가 발생할 수 있으므로 0으로 모두 채운다
         cont_feature[-1, -1] = 0
         
-        return cate_feature.to(self.device), cont_feature.to(self.device), mask.to(self.device), target.to(self.device)
+        # return cate_feature.to(self.device), cont_feature.to(self.device), mask.to(self.device), target.to(self.device)
+        return cate_feature, cont_feature, mask, target
         
     def __len__(self):
         return len(self.user_id_index_list)

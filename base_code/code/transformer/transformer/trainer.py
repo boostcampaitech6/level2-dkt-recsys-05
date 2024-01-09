@@ -34,7 +34,7 @@ def run(
 
     optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
     # loss함수
-    loss_fun = nn.BCELoss()
+    loss_fun = nn.BCEWithLogitsLoss()
 
     os.makedirs(name=model_dir, exist_ok=True)
 
@@ -71,16 +71,22 @@ def run(
 
 def train(model: nn.Module, train_loader, optimizer: torch.optim.Optimizer, loss_fun):
     model.train()
+    target_list = []
+    output_list = []
+
     for cate_x, cont_x, mask, target in train_loader:
         optimizer.zero_grad()
         output = model(cate_x, cont_x, mask)
-
-        acc = accuracy_score(y_true=target, y_pred=output > 0.5)
-        auc = roc_auc_score(y_true=target, y_score=output)
         
+        target_list.extend(target.cpu().detach().numpy())
+        output_list.extend(output.cpu().detach().numpy())
+
         loss = loss_fun(output, target)
         loss.backward()
         optimizer.step()
+
+    acc = accuracy_score(y_true=target_list, y_pred=output_list > 0.5)
+    auc = roc_auc_score(y_true=target_list, y_score=output_list)
     
     logger.info("TRAIN AUC : %.4f ACC : %.4f LOSS : %.4f", auc, acc, loss.item())
     return auc, acc, loss
@@ -89,11 +95,15 @@ def train(model: nn.Module, train_loader, optimizer: torch.optim.Optimizer, loss
 def validate(model: nn.Module, valid_loader):
     model.eval()
     with torch.no_grad():
+        target_list = []
+        output_list = []
         for cate_x, cont_x, mask, target in valid_loader:
             output = model(cate_x, cont_x, mask)
+            target_list.extend(target.cpu().detach().numpy())
+            output_list.extend(output.cpu().detach().numpy())
 
-    acc = accuracy_score(y_true=target, y_pred=output > 0.5)
-    auc = roc_auc_score(y_true=target, y_score=output)
+    acc = accuracy_score(y_true=target_list, y_pred=output_list > 0.5)
+    auc = roc_auc_score(y_true=target_list, y_score=output_list)
 
     logger.info("VALID AUC : %.4f ACC : %.4f", auc, acc)
     return auc, acc

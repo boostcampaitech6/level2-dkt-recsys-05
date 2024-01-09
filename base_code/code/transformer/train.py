@@ -14,8 +14,8 @@ logger = get_logger(logging_conf)
 
 
 def main(cfg: CFG):
-    # wandb.login()
-    # wandb.init(config=vars(cfg))
+    wandb.login()
+    wandb.init(config=vars(cfg))
     set_seeds(cfg.seed)
     
     use_cuda: bool = torch.cuda.is_available() and cfg.use_cuda_if_available
@@ -23,7 +23,7 @@ def main(cfg: CFG):
 
     logger.info("Preparing data ...")
     train_data = PrepareData(cfg).get_data()["train"]
-    train_data = TransformerDataset(train_data, cfg, device)
+    train_data = TransformerDataset(train_data, cfg, device, max_seq_len=cfg.seq_len)
 
     train_size = int(0.8 * len(train_data))
     valid_size = len(train_data) - train_size

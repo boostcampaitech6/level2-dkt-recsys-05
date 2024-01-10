@@ -1,26 +1,22 @@
 {
-    "seed" : 7,
     "device" : "cuda",
-    "use_cuda_if_available" : "True",
+    "seed" : 7,
 
     "batch_size" : 1024, 
-
     "dropout" : 0.2,
-    "emb_size" : 100,
     "hidden_size" : 128,
+    "emb_size" : 100,
     "nlayers" : 2,
     "nheads" : 8,
-
     "seq_len" : 128,
     "target_size" : 1,
+    "index_per_step" : 2,
+    "n_epochs" : 20, 
+    "lr" : 0.001, 
 
     "cate_cols" : ["userID", "assessmentItemID", "KnowledgeTag"],
     "cont_cols" : ["answerCode"],
 
-    "index_per_step" : 2,
-
-    "n_epochs" : 20, 
-    "lr" : 0.001, 
     "model_dir" : "./models/", 
     "model_name" : "best_model.pt", 
     "output_dir" : "./outputs/"

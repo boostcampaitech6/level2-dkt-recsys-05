@@ -14,20 +14,17 @@ logger = get_logger(logging_conf)
 def main(cfg):
     set_seeds(cfg.seed)
 
-    use_cuda: bool = torch.cuda.is_available() and cfg.use_cuda_if_available
-    device = torch.device("cuda" if use_cuda else "cpu")
-
     cfg.cate_col_size = len(cfg.cate_cols)
     cfg.cont_col_size = len(cfg.cont_cols)
 
     logger.info("Preparing data ...")
     test_data = PrepareData(cfg).get_data()
-    test_data = TransformerDataset(test_data, cfg, device, max_seq_len=cfg.seq_len)
+    test_data = TransformerDataset(test_data, cfg)
 
     logger.info("Loading Model ...")
     weight: str = os.path.join(cfg.model_dir, cfg.model_name)
     model: torch.nn.Module = trainer.build(cfg)
-    model = model.to(device)
+    model = model.to(cfg.device)
 
     logger.info("Make Predictions & Save Submission ...")
     trainer.inference(cfg, model=model, data=test_data, output_dir=cfg.output_dir)
@@ -39,8 +36,6 @@ if __name__ == "__main__":
     for key, value in vars(args).items():
         if value is not None:  # 명령줄에서 제공된 인자만 업데이트
             setattr(cfg, key, value)
-
-    os.makedirs(name=cfg.model_dir, exist_ok=True)
 
     main(cfg=cfg)
 

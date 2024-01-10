@@ -18,28 +18,18 @@ def main(cfg: CFG):
     wandb.init(config=vars(cfg))
     set_seeds(cfg.seed)
 
-    use_cuda: bool = torch.cuda.is_available() and cfg.use_cuda_if_available
-    device = torch.device("cuda" if use_cuda else "cpu")
-
     cfg.train = True
 
     logger.info("Preparing data ...")
     train_data = PrepareData(cfg).get_data()
-    train_data = TransformerDataset(train_data, cfg, device, max_seq_len=cfg.seq_len)
+    train_data = TransformerDataset(train_data, cfg)
 
     logger.info("Building Model ...")
     model = trainer.build(cfg)
-    model = model.to(device)
+    model = model.to(cfg.device)
     
     logger.info("Start Training ...")
-    trainer.run(
-        model=model,
-        train_data=train_data,
-        cfg=cfg,
-        n_epochs=cfg.n_epochs,
-        learning_rate=cfg.lr,
-        model_dir=cfg.model_dir,
-    )
+    trainer.run(model=model, train_data=train_data, cfg=cfg)
 
 
 if __name__ == "__main__":
@@ -49,7 +39,5 @@ if __name__ == "__main__":
     for key, value in vars(args).items():
         if value is not None:  # 명령줄에서 제공된 인자만 업데이트
             setattr(cfg, key, value)
-
-    os.makedirs(name=cfg.model_dir, exist_ok=True)
 
     main(cfg=cfg)

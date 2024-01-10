@@ -6,13 +6,10 @@ import os
 
 
 class TransformerDataset(Dataset):
-    def __init__(self, df, cfg, device, max_seq_len, max_content_len):        
+    def __init__(self, df, cfg):        
         
-        self.max_seq_len = max_seq_len
-        self.max_content_len = max_content_len
-        self.cfg = cfg
-
-        if self.cfg.train:
+        self.train = cfg.train
+        if self.train:
             self.user_id_index_list = cfg.user_id_index_list
             self.start_index_by_user_id = cfg.start_index_by_user_id
             self.len = len(self.user_id_index_list)
@@ -23,17 +20,18 @@ class TransformerDataset(Dataset):
             self.end_index_by_user_id = cfg.end_index_by_user_id
             self.len = self.user_id_len
 
+        self.max_seq_len = cfg.seq_len
         self.cate_cols = cfg.cate_cols
         self.cont_cols = cfg.cont_cols
         
         self.cate_features = df[self.cate_cols].values
         self.cont_features = df[self.cont_cols].values
 
-        self.device = device
+        self.device = cfg.device
 
     def __getitem__(self, idx):
         
-        if self.cfg.trian:
+        if self.train:
             user_id, end_index = self.user_id_index_list[idx]
             start_index = self.start_index_by_user_id[user_id]
         else:
@@ -77,7 +75,7 @@ class PrepareData:
         cfg.cate_col_size = len(cfg.cate_cols)
         cfg.cont_col_size = len(cfg.cont_cols)
 
-        if self.cfg.train:
+        if cfg.train:
             cfg.user_id_index_list = [(user_id, index)
                                     for user_id, indexs in self.indexes_by_users.items()
                                     for index in indexs]

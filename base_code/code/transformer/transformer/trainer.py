@@ -22,21 +22,17 @@ def build(cfg):
     return model
 
 
-def run(
-    model: nn.Module,
-    train_data,
-    cfg,
-    n_epochs: int = 100,
-    learning_rate: float = 0.01,
-    model_dir: str = None,
-):
+def run(model: nn.Module, train_data, cfg):
     model.train()
+    model_dir=cfg.model_dir
     os.makedirs(name=model_dir, exist_ok=True)
 
     train_data, valid_data = split_data(train_data)
     train_loader = DataLoader(train_data, batch_size=cfg.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_data, batch_size=cfg.batch_size, shuffle=True)
 
+    n_epochs=cfg.n_epochs
+    learning_rate=cfg.lr
     optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
     loss_fun = nn.BCEWithLogitsLoss()
 
@@ -84,11 +80,11 @@ def train(model: nn.Module, train_loader, optimizer: torch.optim.Optimizer, loss
         optimizer.step()
 
         total_loss += loss.item()
-        target_list.append(target.cpu().detach().numpy())
-        output_list.append(output.cpu().detach().numpy())
+        target_list.append(target.detach())
+        output_list.append(output.detach())
 
-    target_list = np.concatenate(target_list)
-    output_list = np.concatenate(output_list)
+    target_list = torch.concat(target_list).cpu().numpy()
+    output_list = torch.concat(output_list).cpu().numpy()
 
     acc = accuracy_score(y_true=target_list, y_pred=output_list > 0.5)
     auc = roc_auc_score(y_true=target_list, y_score=output_list)
@@ -106,11 +102,11 @@ def validate(model: nn.Module, valid_loader):
         output_list = []
         for cate_x, cont_x, mask, target in tqdm(valid_loader, mininterval=1):
             output = model(cate_x, cont_x, mask)
-            target_list.append(target.cpu().detach().numpy())
-            output_list.append(output.cpu().detach().numpy())
+            target_list.append(target.detach())
+            output_list.append(output.detach())
         
-    target_list = np.concatenate(target_list)
-    output_list = np.concatenate(output_list)
+    target_list = torch.concat(target_list).cpu().numpy()
+    output_list = torch.concat(output_list).cpu().numpy()
 
     acc = accuracy_score(y_true=target_list, y_pred=output_list > 0.5)
     auc = roc_auc_score(y_true=target_list, y_score=output_list)
@@ -135,6 +131,7 @@ def inference(cfg, model: nn.Module, data: dict, output_dir: str):
     os.makedirs(name=output_dir, exist_ok=True)
     write_path = os.path.join(output_dir, "submission.csv")
     pd.DataFrame({"prediction": output_list}).to_csv(path_or_buf=write_path, index_label="id")
+
     logger.info("Successfully saved submission as %s", write_path)
 
 

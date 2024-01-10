@@ -10,6 +10,7 @@ python inference.py --data_dir ../data/
 `code/transformer`
 * `train.py`: 학습코드입니다.
 * `inference.py`: 추론 후 `submissions.csv` 파일을 만들어주는 소스코드입니다.
+* `config.json`: 환경변수들을 이 파일에서 수정할 수 있습니다.
 
 `code/transformer/transformer`
 * `args.py`: `argparse`를 통해 학습에 활용되는 여러 argument들을 받아줍니다.

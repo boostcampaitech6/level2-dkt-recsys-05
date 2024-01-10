@@ -16,6 +16,7 @@ def main(cfg):
 
     cfg.cate_col_size = len(cfg.cate_cols)
     cfg.cont_col_size = len(cfg.cont_cols)
+    cfg.train = False 
 
     logger.info("Preparing data ...")
     test_data = PrepareData(cfg).get_data()

@@ -6,7 +6,7 @@ import os
 
 
 class TransformerDataset(Dataset):
-    def __init__(self, df, cfg, device, max_seq_len=100, max_content_len=1000):        
+    def __init__(self, df, cfg, device, max_seq_len, max_content_len):        
         
         self.max_seq_len = max_seq_len
         self.max_content_len = max_content_len
@@ -72,7 +72,7 @@ class PrepareData:
     def __init__(self, cfg):
         self.cfg = cfg
         self.merged, self.df = self._load_data()
-        self.indexes_by_users = self.df.reset_index().groupby('userID')['index'].apply(lambda x: x.values)
+        self.indexes_by_users = self.df.reset_index().groupby('userID')['index'].agg(list)
 
         cfg.cate_col_size = len(cfg.cate_cols)
         cfg.cont_col_size = len(cfg.cont_cols)

@@ -25,22 +25,20 @@ def build(cfg):
 def run(
     model: nn.Module,
     train_data,
-    valid_data,
     cfg,
     n_epochs: int = 100,
     learning_rate: float = 0.01,
     model_dir: str = None,
 ):
     model.train()
-
-    optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
-    # loss함수
-    loss_fun = nn.BCEWithLogitsLoss()
-
     os.makedirs(name=model_dir, exist_ok=True)
 
+    train_data, valid_data = split_data(train_data)
     train_loader = DataLoader(train_data, batch_size=cfg.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_data, batch_size=cfg.batch_size, shuffle=True)
+
+    optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
+    loss_fun = nn.BCEWithLogitsLoss()
 
     logger.info(f"Training Started : n_epochs={n_epochs}")
     best_auc, best_epoch = 0, -1
@@ -138,3 +136,11 @@ def inference(cfg, model: nn.Module, data: dict, output_dir: str):
     write_path = os.path.join(output_dir, "submission.csv")
     pd.DataFrame({"prediction": output_list}).to_csv(path_or_buf=write_path, index_label="id")
     logger.info("Successfully saved submission as %s", write_path)
+
+
+def split_data(train_data):
+    train_size = int(0.8 * len(train_data))
+    valid_size = len(train_data) - train_size
+    train_data, valid_data = torch.utils.data.random_split(train_data, [train_size, valid_size])
+
+    return train_data, valid_data

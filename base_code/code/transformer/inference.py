@@ -13,10 +13,14 @@ logger = get_logger(logging_conf)
 
 def main(cfg):
     set_seeds(cfg.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    use_cuda: bool = torch.cuda.is_available() and cfg.use_cuda_if_available
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    cfg.cate_col_size = len(cfg.cate_cols)
+    cfg.cont_col_size = len(cfg.cont_cols)
 
     logger.info("Preparing data ...")
-
     test_data = PrepareData(cfg).get_data()
     test_data = TransformerDataset(test_data, cfg, device, max_seq_len=cfg.seq_len)
 
@@ -30,10 +34,7 @@ def main(cfg):
 
 if __name__ == "__main__":
     args = parse_args()
-
     cfg = CFG('config.json')
-    cfg.cate_col_size = len(cfg.cate_cols)
-    cfg.cont_col_size = len(cfg.cont_cols)
 
     for key, value in vars(args).items():
         if value is not None:  # 명령줄에서 제공된 인자만 업데이트

@@ -21,15 +21,11 @@ def main(cfg: CFG):
     use_cuda: bool = torch.cuda.is_available() and cfg.use_cuda_if_available
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    logger.info("Preparing data ...")
-
     cfg.train = True
+
+    logger.info("Preparing data ...")
     train_data = PrepareData(cfg).get_data()
     train_data = TransformerDataset(train_data, cfg, device, max_seq_len=cfg.seq_len)
-
-    train_size = int(0.8 * len(train_data))
-    valid_size = len(train_data) - train_size
-    train_data, valid_data = torch.utils.data.random_split(train_data, [train_size, valid_size])
 
     logger.info("Building Model ...")
     model = trainer.build(cfg)
@@ -39,7 +35,6 @@ def main(cfg: CFG):
     trainer.run(
         model=model,
         train_data=train_data,
-        valid_data=valid_data,
         cfg=cfg,
         n_epochs=cfg.n_epochs,
         learning_rate=cfg.lr,

@@ -61,6 +61,10 @@ class PrepareData:
     def __init__(self, cfg):
         self.cfg = cfg
         self.merged, self.df = self._load_data()
+        self.indexes_by_users = self.df.reset_index().groupby('userID')['index'].apply(lambda x: x.values)
+
+        cfg.cate_col_size = len(cfg.cate_cols)
+        cfg.cont_col_size = len(cfg.cont_cols)
 
         if self.cfg.mode == 'train':
             cfg.user_id_index_list = [(user_id, index)
@@ -68,16 +72,12 @@ class PrepareData:
                                     for index in indexs]
 
         else:
-            cfg.user_id_len = len(self.test['userID'].unique())
-            cfg.start_index_by_user_id = self.indexes_by_users.apply(lambda x: x[0])
-            cfg.end_index_by_user_id = self.indexes_by_users.apply(lambda x: x[-1])
-
-        self.indexes_by_users = self.df.reset_index().groupby('userID')['index'].apply(lambda x: x.values)
-        cfg.cate_col_size = len(cfg.cate_cols)
-        cfg.cont_col_size = len(cfg.cont_cols)
+            cfg.user_id_len = len(self.df['userID'].unique())
+            cfg.start_index_by_user_id = self.indexes_by_users.apply(lambda x: x[0]).tolist()
+            cfg.end_index_by_user_id = self.indexes_by_users.apply(lambda x: x[-1]).tolist()
 
         df_mod, cfg.total_cate_size = self._indexing_data()
-        self.df[self.df.columns] = df_mod[self.df.columns]
+        self.df[df_mod.columns] = df_mod[df_mod.columns]
 
 
     def _load_data(self) -> pd.DataFrame: 
@@ -153,11 +153,11 @@ class InferenceDataset():
     def __getitem__(self, idx):
         
         # end_index 추출
-        end_index = self.end_index_by_user_id.iloc[idx]
+        end_index = self.end_index_by_user_id[idx]
         end_index += 1
         
         # start_index 계산
-        start_index = self.start_index_by_user_id.iloc[idx]
+        start_index = self.start_index_by_user_id[idx]
         start_index = max(end_index - self.max_seq_len, start_index)
         seq_len = end_index - start_index
 

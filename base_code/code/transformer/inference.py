@@ -16,6 +16,8 @@ def main(cfg):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     logger.info("Preparing data ...")
+
+    cfg.mode = 'test'
     test_data = PrepareForIF(cfg).get_data()['test']
     test_data = InferenceDataset(test_data, cfg, device, max_seq_len=cfg.seq_len)
 

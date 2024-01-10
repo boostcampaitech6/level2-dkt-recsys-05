@@ -67,6 +67,8 @@ class PrepareForTF:
                                   for user_id, indexs in self.indexes_by_users.items()
                                   for index in indexs]
         cfg.start_index_by_user_id = self.indexes_by_users.apply(lambda x: x[0])
+        cfg.cate_col_size = len(cfg.cate_cols)
+        cfg.cont_col_size = len(cfg.cont_cols)
 
         train_mod, test_mod, cfg.mappers_dict, cfg.total_cate_size = self._indexing_data()
         self.train[train_mod.columns] = train_mod[train_mod.columns]
@@ -134,6 +136,8 @@ class PrepareForIF:
         cfg.user_id_len = len(self.test['userID'].unique())
         cfg.start_index_by_user_id = self.indexes_by_users.apply(lambda x: x[0])
         cfg.end_index_by_user_id = self.indexes_by_users.apply(lambda x: x[-1])
+        cfg.cate_col_size = len(cfg.cate_cols)
+        cfg.cont_col_size = len(cfg.cont_cols)
 
         train_mod, test_mod, cfg.mappers_dict, cfg.total_cate_size = self._indexing_data()
         self.train[train_mod.columns] = train_mod[train_mod.columns]

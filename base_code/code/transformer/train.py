@@ -18,10 +18,11 @@ def main(cfg: CFG):
     wandb.init(config=vars(cfg))
     set_seeds(cfg.seed)
 
-    use_cuda: bool = torch.cuda.is_available() and cfg.use_cuda_if_available
     device = torch.device("cuda" if use_cuda else "cpu")
 
     logger.info("Preparing data ...")
+
+    cfg.mode = 'train'
     train_data = PrepareForTF(cfg).get_data()['train']
     train_data = TransformerDataset(train_data, cfg, device, max_seq_len=cfg.seq_len)
 
@@ -47,10 +48,7 @@ def main(cfg: CFG):
 
 if __name__ == "__main__":
     args = parse_args()
-
     cfg = CFG('config.json')
-    cfg.cate_col_size = len(cfg.cate_cols)
-    cfg.cont_col_size = len(cfg.cont_cols)
 
     for key, value in vars(args).items():
         if value is not None:  # 명령줄에서 제공된 인자만 업데이트

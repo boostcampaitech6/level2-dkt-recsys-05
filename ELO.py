@@ -2,8 +2,14 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-def ELO(data, user_feature_name = 'userID', granularity_feature_name = 'assessmentItemID', compute_estimations = False, nb_rows_training = None) :
-    
+def ELO(data, elo_data, user_feature_name = 'userID', granularity_feature_name = 'assessmentItemID', compute_estimations = False, nb_rows_training = None) :
+    '''
+    Competition : Kaggle Riiid Answer Correctness Prediction
+    ELO Rating Reference : https://www.kaggle.com/code/stevemju/riiid-simple-elo-rating/notebook
+    --------------------------------------------------------------------------------------------------
+    compute_estimations : theta와 beta에 대한 추정 여부 (처음 한 번 True로 실행)
+    nb_rows_training    : 학습에 사용할 행의 수 (default = None)
+    '''
     ### ELO functions
     def get_new_theta(is_good_answer, beta, left_asymptote, theta, nb_previous_answers) :
         return theta + learning_rate_theta(nb_previous_answers) * (
@@ -120,13 +126,13 @@ def ELO(data, user_feature_name = 'userID', granularity_feature_name = 'assessme
         data_elo = pd.merge(data_elo, item_df, on = 'assessmentItemID', how = 'left')
         data_elo[['user_nb_answers', 'item_nb_answers']] = data_elo[['user_nb_answers', 'item_nb_answers']].astype('int')
         data_elo = data_elo[['userID', 'assessmentItemID', 'theta', 'beta', 'user_nb_answers', 'item_nb_answers']]
-        data_elo.to_csv('./data/data_elo.csv', index = False)
+        data_elo.to_csv(elo_data, index = False)
 
         print('Successfully Write User / Item parameter file.')
         return data_elo
         
     
     else :
-        data_elo = pd.read_csv('./data/data_elo.csv')
+        data_elo = pd.read_csv(elo_data)
         print('Successfully Read User / Item parameter file.')
         return data_elo

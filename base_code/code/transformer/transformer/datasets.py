@@ -57,22 +57,27 @@ class TransformerDataset(Dataset):
         return len(self.user_id_index_list)
 
 
-class PrepareForTF:
+class PrepareData:
     def __init__(self, cfg):
         self.cfg = cfg
-        self.merged, self.train, self.test = self._load_data()
+        self.merged, self.df = self._load_data()
 
-        self.indexes_by_users = self.train.reset_index().groupby('userID')['index'].apply(lambda x: x.values)
-        cfg.user_id_index_list = [(user_id, index)
-                                  for user_id, indexs in self.indexes_by_users.items()
-                                  for index in indexs]
-        cfg.start_index_by_user_id = self.indexes_by_users.apply(lambda x: x[0])
+        if self.cfg.mode == 'train':
+            cfg.user_id_index_list = [(user_id, index)
+                                    for user_id, indexs in self.indexes_by_users.items()
+                                    for index in indexs]
+
+        else:
+            cfg.user_id_len = len(self.test['userID'].unique())
+            cfg.start_index_by_user_id = self.indexes_by_users.apply(lambda x: x[0])
+            cfg.end_index_by_user_id = self.indexes_by_users.apply(lambda x: x[-1])
+
+        self.indexes_by_users = self.df.reset_index().groupby('userID')['index'].apply(lambda x: x.values)
         cfg.cate_col_size = len(cfg.cate_cols)
         cfg.cont_col_size = len(cfg.cont_cols)
 
-        train_mod, test_mod, cfg.mappers_dict, cfg.total_cate_size = self._indexing_data()
-        self.train[train_mod.columns] = train_mod[train_mod.columns]
-        self.test[test_mod.columns] = test_mod[test_mod.columns]
+        df_mod, cfg.total_cate_size = self._indexing_data()
+        self.df[self.df.columns] = df_mod[self.df.columns]
 
 
     def _load_data(self) -> pd.DataFrame: 
@@ -82,15 +87,19 @@ class PrepareForTF:
         test = pd.read_csv(path2)
 
         data = pd.concat([train, test])
-        return data, train, test
+
+        if self.cfg.mode == 'train':
+            df = train
+        else:
+            df = test
+        return data, df
     
 
     def _indexing_data(self) -> tuple[pd.DataFrame, dict]:
         cate_cols = self.cfg.cate_cols
         mappers_dict = {}
 
-        train_mod = pd.DataFrame()
-        test_mod = pd.DataFrame()
+        df_mod = pd.DataFrame()
         # nan 값이 0이므로 위해 offset은 1에서 출발한다
         cate_offset = 1
 
@@ -108,92 +117,19 @@ class PrepareForTF:
                 # nan을 고려하여 offset을 추가한다
                 cate2idx[v] = len(cate2idx) + cate_offset
 
-            mappers_dict[col] = cate2idx
-
             # mapping
-            train_mod[col] = self.train[col].map(cate2idx).astype(int)
-            test_mod[col] = self.test[col].map(cate2idx).astype(int)
+            df_mod[col] = self.df[col].map(cate2idx).astype(int)
 
             # 하나의 embedding layer를 사용할 것이므로 다른 feature들이 사용한 index값을
             # 제외하기 위해 offset값을 지속적으로 추가한다
             cate_offset += len(cate2idx)
         
-        return train_mod, test_mod, mappers_dict, cate_offset
+        return df_mod, cate_offset
 
 
     def get_data(self):
-        return {'train'                     : self.train, 
-                'test'                      : self.test, 
-                }
+        return self.df
 
-
-class PrepareForIF:
-    def __init__(self, cfg):
-        self.cfg = cfg
-        self.merged, self.train, self.test = self._load_data()
-
-        self.indexes_by_users = self.test.reset_index().groupby('userID')['index'].apply(lambda x: x.values)
-        cfg.user_id_len = len(self.test['userID'].unique())
-        cfg.start_index_by_user_id = self.indexes_by_users.apply(lambda x: x[0])
-        cfg.end_index_by_user_id = self.indexes_by_users.apply(lambda x: x[-1])
-        cfg.cate_col_size = len(cfg.cate_cols)
-        cfg.cont_col_size = len(cfg.cont_cols)
-
-        train_mod, test_mod, cfg.mappers_dict, cfg.total_cate_size = self._indexing_data()
-        self.train[train_mod.columns] = train_mod[train_mod.columns]
-        self.test[test_mod.columns] = test_mod[test_mod.columns]
-
-
-    def _load_data(self) -> pd.DataFrame: 
-        path1 = os.path.join(self.cfg.data_dir, "train_data.csv")
-        path2 = os.path.join(self.cfg.data_dir, "test_data.csv")
-        train = pd.read_csv(path1)
-        test = pd.read_csv(path2)
-
-        data = pd.concat([train, test])
-        return data, train, test
-    
-
-    def _indexing_data(self) -> tuple[pd.DataFrame, dict]:
-        cate_cols = self.cfg.cate_cols
-        mappers_dict = {}
-
-        train_mod = pd.DataFrame()
-        test_mod = pd.DataFrame()
-        # nan 값이 0이므로 위해 offset은 1에서 출발한다
-        cate_offset = 1
-
-        for col in cate_cols:
-
-            # 각 column마다 mapper를 만든다
-            cate2idx = {}
-            for v in self.merged[col].unique():
-
-                # np.nan != np.nan은 True가 나온다
-                # nan 및 None은 넘기는 코드
-                if (v != v) | (v == None):
-                    continue 
-
-                # nan을 고려하여 offset을 추가한다
-                cate2idx[v] = len(cate2idx) + cate_offset
-
-            mappers_dict[col] = cate2idx
-
-            # mapping
-            train_mod[col] = self.train[col].map(cate2idx).astype(int)
-            test_mod[col] = self.test[col].map(cate2idx).astype(int)
-
-            # 하나의 embedding layer를 사용할 것이므로 다른 feature들이 사용한 index값을
-            # 제외하기 위해 offset값을 지속적으로 추가한다
-            cate_offset += len(cate2idx)
-        
-        return train_mod, test_mod, mappers_dict, cate_offset
-
-
-    def get_data(self):
-        return {'train'                     : self.train, 
-                'test'                      : self.test, 
-                }
 
 
 class InferenceDataset():

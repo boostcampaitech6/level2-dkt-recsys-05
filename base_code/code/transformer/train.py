@@ -5,7 +5,7 @@ import torch
 import wandb
 
 from transformer.args import parse_args
-from transformer.datasets import TransformerDataset, PrepareForTF
+from transformer.datasets import TransformerDataset, PrepareData
 from transformer import trainer
 from transformer.utils import get_logger, set_seeds, logging_conf, CFG
 
@@ -23,7 +23,7 @@ def main(cfg: CFG):
     logger.info("Preparing data ...")
 
     cfg.mode = 'train'
-    train_data = PrepareForTF(cfg).get_data()['train']
+    train_data = PrepareData(cfg).get_data()
     train_data = TransformerDataset(train_data, cfg, device, max_seq_len=cfg.seq_len)
 
     train_size = int(0.8 * len(train_data))

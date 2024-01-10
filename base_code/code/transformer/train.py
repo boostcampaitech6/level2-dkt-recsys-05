@@ -14,10 +14,11 @@ logger = get_logger(logging_conf)
 
 
 def main(cfg: CFG):
-    wandb.login()
-    wandb.init(config=vars(cfg))
+    # wandb.login()
+    # wandb.init(config=vars(cfg))
     set_seeds(cfg.seed)
 
+    use_cuda: bool = torch.cuda.is_available() and cfg.use_cuda_if_available
     device = torch.device("cuda" if use_cuda else "cpu")
 
     logger.info("Preparing data ...")

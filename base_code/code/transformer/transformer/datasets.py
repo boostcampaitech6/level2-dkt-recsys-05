@@ -10,9 +10,18 @@ class TransformerDataset(Dataset):
         
         self.max_seq_len = max_seq_len
         self.max_content_len = max_content_len
-        
-        self.user_id_index_list = cfg.user_id_index_list
-        self.start_index_by_user_id = cfg.start_index_by_user_id
+        self.cfg = cfg
+
+        if self.cfg.mode == 'train':
+            self.user_id_index_list = cfg.user_id_index_list
+            self.start_index_by_user_id = cfg.start_index_by_user_id
+            self.len = len(self.user_id_index_list)
+
+        else:
+            self.user_id_len = cfg.user_id_len
+            self.start_index_by_user_id = cfg.start_index_by_user_id
+            self.end_index_by_user_id = cfg.end_index_by_user_id
+            self.len = self.user_id_len
 
         self.cate_cols = cfg.cate_cols
         self.cont_cols = cfg.cont_cols
@@ -24,12 +33,14 @@ class TransformerDataset(Dataset):
 
     def __getitem__(self, idx):
         
-        # end_index 추출
-        user_id, end_index = self.user_id_index_list[idx]
+        if self.cfg.mode == 'train':
+            user_id, end_index = self.user_id_index_list[idx]
+            start_index = self.start_index_by_user_id[user_id]
+        else:
+            end_index = self.end_index_by_user_id[idx]
+            start_index = self.start_index_by_user_id[idx]
+
         end_index += 1
-        
-        # start_index 계산
-        start_index = self.start_index_by_user_id[user_id]
         start_index = max(end_index - self.max_seq_len, start_index)
         seq_len = end_index - start_index
 
@@ -54,7 +65,7 @@ class TransformerDataset(Dataset):
         return cate_feature, cont_feature, mask, target
         
     def __len__(self):
-        return len(self.user_id_index_list)
+        return self.len
 
 
 class PrepareData:
@@ -70,6 +81,7 @@ class PrepareData:
             cfg.user_id_index_list = [(user_id, index)
                                     for user_id, indexs in self.indexes_by_users.items()
                                     for index in indexs]
+            cfg.start_index_by_user_id = self.indexes_by_users.apply(lambda x: x[0])
 
         else:
             cfg.user_id_len = len(self.df['userID'].unique())
@@ -129,57 +141,3 @@ class PrepareData:
 
     def get_data(self):
         return self.df
-
-
-
-class InferenceDataset():
-    def __init__(self, df, cfg, device, max_seq_len=100, max_content_len=1000):        
-        
-        self.max_seq_len = max_seq_len
-        self.max_content_len = max_content_len
-        
-        self.user_id_len = cfg.user_id_len
-        self.start_index_by_user_id = cfg.start_index_by_user_id
-        self.end_index_by_user_id = cfg.end_index_by_user_id
-
-        self.cate_cols = cfg.cate_cols
-        self.cont_cols = cfg.cont_cols
-        
-        self.cate_features = df[self.cate_cols].values
-        self.cont_features = df[self.cont_cols].values
-
-        self.device = device
-
-    def __getitem__(self, idx):
-        
-        # end_index 추출
-        end_index = self.end_index_by_user_id[idx]
-        end_index += 1
-        
-        # start_index 계산
-        start_index = self.start_index_by_user_id[idx]
-        start_index = max(end_index - self.max_seq_len, start_index)
-        seq_len = end_index - start_index
-
-        with torch.device(self.device):
-            # 0으로 채워진 output tensor 제작                  
-            cate_feature = torch.zeros(self.max_seq_len, len(self.cate_cols), dtype=torch.long)
-            cont_feature = torch.zeros(self.max_seq_len, len(self.cont_cols), dtype=torch.float)
-            mask = torch.zeros(self.max_seq_len, dtype=torch.int16)
-        
-            # tensor에 값 채워넣기
-            cate_feature[-seq_len:] = torch.ShortTensor(self.cate_features[start_index:end_index]) # 16bit signed integer
-            cont_feature[-seq_len:] = torch.HalfTensor(self.cont_features[start_index:end_index]) # 16bit float
-            mask[-seq_len:] = 1        
-                
-            # target은 꼭 cont_feature의 맨 뒤에 놓자
-            target = torch.cuda.FloatTensor([cont_feature[-1, -1]])
-
-        # data leakage가 발생할 수 있으므로 0으로 모두 채운다
-        cont_feature[-1, -1] = 0
-        
-        # return cate_feature.to(self.device), cont_feature.to(self.device), mask.to(self.device), target.to(self.device)
-        return cate_feature, cont_feature, mask, target
-        
-    def __len__(self):
-        return self.user_id_len

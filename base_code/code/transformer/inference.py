@@ -3,7 +3,7 @@ import os
 import torch
 
 from transformer.args import parse_args
-from transformer.datasets import InferenceDataset, PrepareData
+from transformer.datasets import TransformerDataset, PrepareData
 from transformer import trainer
 from transformer.utils import get_logger, logging_conf, set_seeds, CFG
 
@@ -19,7 +19,7 @@ def main(cfg):
 
     cfg.mode = 'test'
     test_data = PrepareData(cfg).get_data()
-    test_data = InferenceDataset(test_data, cfg, device, max_seq_len=cfg.seq_len)
+    test_data = TransformerDataset(test_data, cfg, device, max_seq_len=cfg.seq_len)
 
     logger.info("Loading Model ...")
     weight: str = os.path.join(cfg.model_dir, cfg.model_name)

@@ -34,6 +34,7 @@ class NGCF(nn.Module):
         self.layers = args.layers
         self.lr = args.lr
         self.norm_adj = norm_adj
+        self.reg = args.reg
 
         self.n_layers = len(args.layers)
 
@@ -134,7 +135,6 @@ class NGCF(nn.Module):
     ):
         random_tensor = 1 - self.node_dropout
         random_tensor += torch.rand(x._nnz(), device=self.device)
-        print(random_tensor)
         dropout_mask = torch.floor(random_tensor).type(torch.bool)
         i = x._indices()
         v = x._values()
@@ -142,12 +142,29 @@ class NGCF(nn.Module):
         v = v[dropout_mask]
         out = torch.sparse.FloatTensor(i, v, x.shape).to(self.device)
         return out * (1.0 / (1 - self.node_dropout))
+    
+    def _calc_loss(self, u_g_embeddings, pos_i_g_embeddings, neg_i_g_embeddings):
+        y_pos = torch.sum(torch.mul(u_g_embeddings, pos_i_g_embeddings), axis=1)
+        y_neg = torch.sum(torch.mul(u_g_embeddings, neg_i_g_embeddings), axis=1)
+
+        log_prob = (torch.log(torch.sigmoid(y_pos)) + torch.log(torch.sigmoid(-y_neg))) / 2
+
+        loss = -torch.mean(log_prob)
+
+        if self.reg > 0:
+            loss += self.reg * (
+                torch.mean(torch.square(u_g_embeddings))
+                + torch.mean(torch.square(pos_i_g_embeddings))
+                + torch.mean(torch.square(neg_i_g_embeddings))
+            )
+
+        return loss
 
     def forward(self, u, i, j):
         A_hat = self.sparse_dropout(self.sparse_norm_adj)
 
         ego_embeddings = torch.cat(
-            [self.embedding_dict["user_emb"], self.embedding_dict["item_emb"]],
+            [self.embedding_dict["user_embedding"], self.embedding_dict["item_embedding"]],
             0,
         )
 
@@ -186,4 +203,4 @@ class NGCF(nn.Module):
         pos_i_g_embeddings = i_g_embeddings[i, :]
         neg_i_g_embeddings = i_g_embeddings[j, :]
 
-        return u_g_embeddings, pos_i_g_embeddings, neg_i_g_embeddings
+        return self._calc_loss(u_g_embeddings, pos_i_g_embeddings, neg_i_g_embeddings)

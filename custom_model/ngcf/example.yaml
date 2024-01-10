@@ -9,7 +9,7 @@ layers:
 - 64
 - 64
 batch_size: 2
-alpha:
+reg: 0.00001
 n_epochs: 1
 lr: 0.001
 model_dir: "./models/"

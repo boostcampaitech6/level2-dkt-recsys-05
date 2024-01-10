@@ -19,7 +19,7 @@ class Args(BaseModel):
     embedding_dim: int = 64
     layers: list = [64, 64]
     batch_size: int = 64
-    alpha: float | None = None
+    reg: float = 1e-5
     n_epochs: int = 20
     lr: float = 0.001
     model_dir: str = "./models/"

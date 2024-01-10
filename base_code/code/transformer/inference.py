@@ -17,7 +17,6 @@ def main(cfg):
 
     logger.info("Preparing data ...")
 
-    cfg.mode = 'test'
     test_data = PrepareData(cfg).get_data()
     test_data = TransformerDataset(test_data, cfg, device, max_seq_len=cfg.seq_len)
 

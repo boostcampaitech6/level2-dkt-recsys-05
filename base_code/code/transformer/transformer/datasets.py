@@ -12,7 +12,7 @@ class TransformerDataset(Dataset):
         self.max_content_len = max_content_len
         self.cfg = cfg
 
-        if self.cfg.mode == 'train':
+        if self.cfg.train:
             self.user_id_index_list = cfg.user_id_index_list
             self.start_index_by_user_id = cfg.start_index_by_user_id
             self.len = len(self.user_id_index_list)
@@ -33,7 +33,7 @@ class TransformerDataset(Dataset):
 
     def __getitem__(self, idx):
         
-        if self.cfg.mode == 'train':
+        if self.cfg.trian:
             user_id, end_index = self.user_id_index_list[idx]
             start_index = self.start_index_by_user_id[user_id]
         else:
@@ -77,7 +77,7 @@ class PrepareData:
         cfg.cate_col_size = len(cfg.cate_cols)
         cfg.cont_col_size = len(cfg.cont_cols)
 
-        if self.cfg.mode == 'train':
+        if self.cfg.train:
             cfg.user_id_index_list = [(user_id, index)
                                     for user_id, indexs in self.indexes_by_users.items()
                                     for index in indexs]
@@ -100,7 +100,7 @@ class PrepareData:
 
         data = pd.concat([train, test])
 
-        if self.cfg.mode == 'train':
+        if self.cfg.train:
             df = train
         else:
             df = test

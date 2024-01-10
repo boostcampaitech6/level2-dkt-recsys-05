@@ -23,7 +23,7 @@ def main(cfg: CFG):
 
     logger.info("Preparing data ...")
 
-    cfg.mode = 'train'
+    cfg.train = True
     train_data = PrepareData(cfg).get_data()
     train_data = TransformerDataset(train_data, cfg, device, max_seq_len=cfg.seq_len)
 

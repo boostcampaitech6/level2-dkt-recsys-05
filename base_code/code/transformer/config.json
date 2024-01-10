@@ -3,7 +3,7 @@
     "device" : "cuda",
     "use_cuda_if_available" : "True",
 
-    "batch_size" : 16,
+    "batch_size" : 128, 
 
     "dropout" : 0.2,
     "emb_size" : 100,
@@ -11,7 +11,7 @@
     "nlayers" : 2,
     "nheads" : 8,
   
-    "seq_len" : 32,
+    "seq_len" : 256,
     "target_size" : 1,
 
     "cate_cols" : ["userID", "assessmentItemID", "KnowledgeTag"],

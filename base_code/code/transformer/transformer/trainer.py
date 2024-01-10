@@ -9,6 +9,7 @@ from .model import TransformerModel
 from .datasets import TransformerDataset
 from torch.utils.data import DataLoader
 import wandb
+from tqdm import tqdm 
 
 from .utils import get_logger, logging_conf
 
@@ -71,25 +72,33 @@ def run(
 
 def train(model: nn.Module, train_loader, optimizer: torch.optim.Optimizer, loss_fun):
     model.train()
+    total_loss = 0.0
     target_list = []
     output_list = []
 
-    for cate_x, cont_x, mask, target in train_loader:
+    for cate_x, cont_x, mask, target in tqdm(train_loader, mininterval=1):
+        
         optimizer.zero_grad()
         output = model(cate_x, cont_x, mask)
-        
-        target_list.extend(target.cpu().detach().numpy())
-        output_list.extend(output.cpu().detach().numpy())
 
         loss = loss_fun(output, target)
         loss.backward()
         optimizer.step()
 
+        total_loss += loss.item()
+        target_list.append(target.cpu().detach().numpy())
+        output_list.append(output.cpu().detach().numpy())
+
+    target_list = np.concatenate(target_list)
+    output_list = np.concatenate(output_list)
+
     acc = accuracy_score(y_true=target_list, y_pred=output_list > 0.5)
     auc = roc_auc_score(y_true=target_list, y_score=output_list)
-    
-    logger.info("TRAIN AUC : %.4f ACC : %.4f LOSS : %.4f", auc, acc, loss.item())
-    return auc, acc, loss
+
+    average_loss = total_loss / len(train_loader)
+    logger.info("TRAIN AUC : %.4f ACC : %.4f LOSS : %.4f", auc, acc, average_loss)
+
+    return auc, acc, average_loss
 
 
 def validate(model: nn.Module, valid_loader):
@@ -97,11 +106,11 @@ def validate(model: nn.Module, valid_loader):
     with torch.no_grad():
         target_list = []
         output_list = []
-        for cate_x, cont_x, mask, target in valid_loader:
+        for cate_x, cont_x, mask, target in tqdm(valid_loader, mininterval=1):
             output = model(cate_x, cont_x, mask)
-            target_list.extend(target.cpu().detach().numpy())
-            output_list.extend(output.cpu().detach().numpy())
-
+            target_list.append(target.cpu().detach().numpy())
+            output_list.append(output.cpu().detach().numpy())
+        
     acc = accuracy_score(y_true=target_list, y_pred=output_list > 0.5)
     auc = roc_auc_score(y_true=target_list, y_score=output_list)
 

@@ -11,13 +11,13 @@ def parse_args():
     
     parser.add_argument("--output_dir", default="./outputs/", type=str, help="")
     
-    parser.add_argument("--batch_size", default=16, type=int, help="")
+    parser.add_argument("--batch_size", type=int, help="")
     parser.add_argument("--emb_dim", default=100, type=int, help="")
     parser.add_argument("--hidden_dim", default=128, type=int, help="")
     parser.add_argument("--n_layers", default=2, type=int, help="")
     parser.add_argument("--n_heads", default=8, type=int, help="")
 
-    parser.add_argument("--seq_len", default=32, type=int, help="")
+    parser.add_argument("--seq_len", type=int, help="")
     
     parser.add_argument("--n_epochs", default=20, type=int, help="")
     parser.add_argument("--lr", default=0.001, type=float, help="")

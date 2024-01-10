@@ -7,6 +7,8 @@ def ELO(data, elo_data, user_feature_name = 'userID', granularity_feature_name =
     Competition : Kaggle Riiid Answer Correctness Prediction
     ELO Rating Reference : https://www.kaggle.com/code/stevemju/riiid-simple-elo-rating/notebook
     --------------------------------------------------------------------------------------------------
+    data                : Row Data의 파일 경로
+    elo_data            : ELO estimation한 값들이 저장될 파일의 경로
     compute_estimations : theta와 beta에 대한 추정 여부 (처음 한 번 True로 실행)
     nb_rows_training    : 학습에 사용할 행의 수 (default = None)
     '''

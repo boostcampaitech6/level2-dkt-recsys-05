@@ -5,7 +5,7 @@ import torch
 import wandb
 
 from transformer.args import parse_args
-from transformer.datasets import TransformerDataset, PrepareData
+from transformer.datasets import TransformerDataset, PrepareForTF
 from transformer import trainer
 from transformer.utils import get_logger, set_seeds, logging_conf, CFG
 
@@ -17,12 +17,12 @@ def main(cfg: CFG):
     wandb.login()
     wandb.init(config=vars(cfg))
     set_seeds(cfg.seed)
-    
+
     use_cuda: bool = torch.cuda.is_available() and cfg.use_cuda_if_available
     device = torch.device("cuda" if use_cuda else "cpu")
 
     logger.info("Preparing data ...")
-    train_data = PrepareData(cfg).get_data()["train"]
+    train_data = PrepareForTF(cfg).get_data()['train']
     train_data = TransformerDataset(train_data, cfg, device, max_seq_len=cfg.seq_len)
 
     train_size = int(0.8 * len(train_data))

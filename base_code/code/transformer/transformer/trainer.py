@@ -111,6 +111,9 @@ def validate(model: nn.Module, valid_loader):
             target_list.append(target.cpu().detach().numpy())
             output_list.append(output.cpu().detach().numpy())
         
+    target_list = np.concatenate(target_list)
+    output_list = np.concatenate(output_list)
+
     acc = accuracy_score(y_true=target_list, y_pred=output_list > 0.5)
     auc = roc_auc_score(y_true=target_list, y_score=output_list)
 
@@ -118,14 +121,20 @@ def validate(model: nn.Module, valid_loader):
     return auc, acc
 
 
-def inference(model: nn.Module, data: dict, output_dir: str):
+def inference(cfg, model: nn.Module, data: dict, output_dir: str):
+    test_loader = DataLoader(data, batch_size=cfg.batch_size, shuffle=False)
+
     model.eval()
     with torch.no_grad():
-        pred = model.predict_link(edge_index=data["edge"], prob=True)
+        output_list = []
+        for cate_x, cont_x, mask, target in tqdm(test_loader, mininterval=1):
+            output = model(cate_x, cont_x, mask)
+            output_list.append(output.cpu().detach().numpy())
         
+    output_list = np.concatenate(output_list).flatten()
+
     logger.info("Saving Result ...")
-    pred = pred.detach().cpu().numpy()
     os.makedirs(name=output_dir, exist_ok=True)
     write_path = os.path.join(output_dir, "submission.csv")
-    pd.DataFrame({"prediction": pred}).to_csv(path_or_buf=write_path, index_label="id")
+    pd.DataFrame({"prediction": output_list}).to_csv(path_or_buf=write_path, index_label="id")
     logger.info("Successfully saved submission as %s", write_path)

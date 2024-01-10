@@ -72,10 +72,9 @@ class TransformerModel(nn.Module):
         seq_emb = torch.cat([cate_emb, cont_emb], 2)        
         seq_emb = self.comb_proj(seq_emb)   
         
-        # mask, _ = mask.view(batch_size, half_seq_len, -1).max(2)
         mask, _ = mask.view(batch_size, half_seq_len, -1).max(2)
+        mask = mask.unsqueeze(1).unsqueeze(2)
         
-        #print(seq_emb.size(), mask.size())
         encoded_layers = self.encoder(seq_emb, attention_mask=mask)
         sequence_output = encoded_layers[0]
         sequence_output = sequence_output[:, -1]        

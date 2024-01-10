@@ -56,7 +56,6 @@ class NGCFDataset(Dataset):
                 pl.col("item").cast(pl.Int64),
             )
             .to_numpy(),
-            
             dtype=torch.float32,
         )
 
@@ -70,22 +69,18 @@ class NGCFDataset(Dataset):
         {유저: 부정_아이템_리스트} 을 만든다
 
         self.negative_pool: dict[int, set]
-        
+
         """
         start = time.time()
         logger.info("Creating Negative Pool")
-        user_positive_items: dict[int: set[int]] = {
-            user: set()
-            for user in range(self.n_users)
+        user_positive_items: dict[int : set[int]] = {
+            user: set() for user in range(self.n_users)
         }
 
         for user, item in self.features.numpy():
             user_positive_items[int(user)].add(int(item))
 
-        negative_pool = {
-            user: set()
-            for user in range(self.n_users)
-        }
+        negative_pool = {user: set() for user in range(self.n_users)}
 
         for user in range(self.n_users):
             positive_items = user_positive_items.get(user, set())

@@ -3,7 +3,8 @@ use_cuda_if_available: "true"
 data_dir: "/data/ephemeral/home/dkt/data"
 output_dir: "./outputs/"
 hidden_dim: 64
-dropout: 0.2
+node_dropout: 0.2
+mess_dropout: 0.2
 layers: 
 - 64
 - 64

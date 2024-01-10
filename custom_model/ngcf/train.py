@@ -50,6 +50,5 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
-            
 
     logger.info(f"NGCF Training End at {time.time() - start_time:.2f} seconds")

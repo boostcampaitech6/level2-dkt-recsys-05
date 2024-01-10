@@ -14,7 +14,8 @@ class Args(BaseModel):
     use_cuda_if_available: bool = True
     data_dir: str = "/opt/ml/data"
     output_dir: str = "./outputs/"
-    dropout: float = 0.2
+    node_dropout: float = 0.2
+    mess_dropout: float = 0.2
     embedding_dim: int = 64
     layers: list = [64, 64]
     batch_size: int = 64

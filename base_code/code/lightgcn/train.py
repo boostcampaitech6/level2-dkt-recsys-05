@@ -15,7 +15,7 @@ logger = get_logger(logging_conf)
 
 def main(args: argparse.Namespace):
     wandb.login()
-    wandb.init(config=vars(args))
+    wandb.init(project="teemo-dkt/dkt_jsj", config=vars(args))
     set_seeds(args.seed)
     
     use_cuda: bool = torch.cuda.is_available() and args.use_cuda_if_available

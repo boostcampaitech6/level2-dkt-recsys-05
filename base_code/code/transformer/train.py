@@ -26,7 +26,6 @@ def main(cfg: CFG):
 
     logger.info("Building Model ...")
     model = trainer.build(cfg)
-    model = model.to(cfg.device)
     
     logger.info("Start Training ...")
     trainer.run(model=model, train_data=train_data, cfg=cfg)

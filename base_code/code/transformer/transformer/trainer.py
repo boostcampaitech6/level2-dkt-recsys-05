@@ -19,6 +19,16 @@ logger = get_logger(logger_conf=logging_conf)
 
 def build(cfg):
     model = TransformerModel(cfg)
+
+    if cfg.train:
+        pass
+
+    else:
+        model_path = os.path.join(cfg.model_dir, cfg.model_name)
+        model_state = torch.load(model_path)
+        model.load_state_dict(model_state["model"])
+
+    model = model.to(cfg.device)
     return model
 
 

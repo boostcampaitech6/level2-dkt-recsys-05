@@ -23,9 +23,7 @@ def main(cfg):
     test_data = TransformerDataset(test_data, cfg)
 
     logger.info("Loading Model ...")
-    weight: str = os.path.join(cfg.model_dir, cfg.model_name)
     model: torch.nn.Module = trainer.build(cfg)
-    model = model.to(cfg.device)
 
     logger.info("Make Predictions & Save Submission ...")
     trainer.inference(cfg, model=model, data=test_data, output_dir=cfg.output_dir)

@@ -4,4 +4,5 @@
 
 ```
 $ bash pyenv.sh
+$ source ~/.bashrc
 ```

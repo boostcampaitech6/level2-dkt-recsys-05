@@ -6,3 +6,8 @@
 $ bash pyenv.sh
 $ source ~/.bashrc
 ```
+
+poetry를 설치하고 cache 디렉토리를 변경해주세요.
+```
+$ poetry config cache-dir /data/ephemeral/.cache/pypoetry
+```

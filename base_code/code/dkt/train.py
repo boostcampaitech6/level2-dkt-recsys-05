@@ -5,7 +5,7 @@ import torch
 import wandb
 
 from dkt import trainer
-from repo.base_code.code.dkt.dkt.configs import load_config
+from dkt.configs import load_config
 from dkt.dataloader import Preprocess
 from dkt.utils import get_logger, set_seeds, logging_conf
 
@@ -15,7 +15,7 @@ logger = get_logger(logging_conf)
 
 def main(cfg):
     wandb.login()
-    wandb.init(cfg['project'])
+    wandb.init(cfg['project'], config=cfg)
     set_seeds(cfg['seed'])
     cfg['device'] = "cuda" if torch.cuda.is_available() else "cpu"
 

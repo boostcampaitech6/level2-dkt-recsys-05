@@ -200,8 +200,10 @@ pyrightconfig.json
 # .bashrc
 /.bashrc*
 
-# End of https://www.toptal.com/developers/gitignore/api/python
+/**/nohup.out
 
 # asset, models
 /base_code/code/asset/
 /base_code/code/models/
+
+# End of https://www.toptal.com/developers/gitignore/api/python

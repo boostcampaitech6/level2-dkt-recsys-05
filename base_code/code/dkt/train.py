@@ -26,10 +26,10 @@ def main(cfg):
     train_data, valid_data = preprocess.split_data(data=train_data)
 
     logger.info("Building Model ...")
-    model: torch.nn.Module = trainer.get_model(args=cfg).to(cfg['device'])
+    model: torch.nn.Module = trainer.get_model(cfg=cfg).to(cfg['device'])
 
     logger.info("Start Training ...")
-    trainer.run(args=cfg, train_data=train_data, valid_data=valid_data, model=model)
+    trainer.run(cfg=cfg, train_data=train_data, valid_data=valid_data, model=model)
 
 
 if __name__ == "__main__":

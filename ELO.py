@@ -1,14 +1,33 @@
+import json
 import numpy as np 
 import pandas as pd
 from tqdm import tqdm
 
-def ELO(data, elo_data, user_feature_name = 'userID', granularity_feature_name = 'assessmentItemID', compute_estimations = False, nb_rows_training = None) :
+def ELO(data, user_feature_name = 'userID', granularity_feature_name = 'assessmentItemID', compute_estimations = False, nb_rows_training = None) :
     '''
     Competition : Kaggle Riiid Answer Correctness Prediction
     ELO Rating Reference : https://www.kaggle.com/code/stevemju/riiid-simple-elo-rating/notebook
+
+    Description
+    - `theta` represents the global level of the student
+    - `beta` represents the difficulty of the item (items are represented by `content_id` in that case but you could change it by modifying the `granularity_feature_name` parameters)
+    - `left_asymptote` represents the probability of correctly answering a question by chance. The `correct_answer` from the questions dataset has 4 possible values, so this probability is at least 1/4
+
+    Remarks
+    - I used a different learning rate for thetas and for betas. The learning rate for thetas has a floor value to keep it dynamic even after many answers as the student level is always evolving contrary to the difficulty of questions.
+    - The learning rate for theta update is absolutely arbitrary (I picked one that looked good, nothing more). The learning rate for betas is one that was recommended this paper but I'm sure there's a better one.
+    - I tried to compute a theta by part but performance is slightly worse (0.764).
+    - I tried both a theta by part and a global theta, which I combined with proportions based on the nb_answers of the part, and performance is slightly better (0.767).
+
+    Possible improvements:
+    - Fine tune learning rates (simply changing the LR for betas made the score go from 0.749 to 0.766)
+    - Learning rate function of time: if the student hasn't played for a long time, we might want to increase the LR to reestimate his/her level quickly
+    - Add a coefficient on `theta` computation based on the time to answer (a good and quick answer is probably more indicative of mastery than a good and slow answer)
+    Investigate on extreme `theta` and `beta` values
+    - Using betas & thetas as model features could be interesting, as well as estimating betas by tags
     --------------------------------------------------------------------------------------------------
+    Parameter
     data                : Row Data의 파일 경로
-    elo_data            : ELO estimation한 값들이 저장될 파일의 경로
     compute_estimations : theta와 beta에 대한 추정 여부 (처음 한 번 True로 실행)
     nb_rows_training    : 학습에 사용할 행의 수 (default = None)
     '''
@@ -121,20 +140,22 @@ def ELO(data, elo_data, user_feature_name = 'userID', granularity_feature_name =
         print(f'Columns are {list(training.columns)}')
 
         user_parameters, item_parameters = estimate_parameters(training, user_feature_name, granularity_feature_name)
-        user_df = pd.DataFrame(user_parameters).T.reset_index(names = 'userID')
-        item_df = pd.DataFrame(item_parameters).T.reset_index(names = 'assessmentItemID')
-
-        data_elo = pd.merge(train_data, user_df, on = 'userID', how = 'left')
-        data_elo = pd.merge(data_elo, item_df, on = 'assessmentItemID', how = 'left')
-        data_elo[['user_nb_answers', 'item_nb_answers']] = data_elo[['user_nb_answers', 'item_nb_answers']].astype('int')
-        data_elo = data_elo[['userID', 'assessmentItemID', 'theta', 'beta', 'user_nb_answers', 'item_nb_answers']]
-        data_elo.to_csv(elo_data, index = False)
-
-        print('Successfully Write User / Item parameter file.')
-        return data_elo
+        theta_estimate = {int(user) : theta['theta'] for user, theta in user_parameters.items()}
+        beta_estimate = {str(item) : beta['beta'] for item, beta in item_parameters.items()}
+        
+        with open('./data/theta_estimate.json', 'w') as f : 
+            json.dump(theta_estimate, f, indent = 4)
+        with open('./data/beta_estimate.json', 'w') as f : 
+            json.dump(beta_estimate, f, indent = 4)
+ 
+        print('Successfully Write User (theta) / Item (beta) parameter file.')
+        return theta_estimate, beta_estimate
         
     
     else :
-        data_elo = pd.read_csv(elo_data)
-        print('Successfully Read User / Item parameter file.')
-        return data_elo
+        with open('./data/theta_estimate.json') as f :
+            theta_estimate = json.load(f)
+        with open('./data/beta_estimate.json') as f :
+            beta_estimate = json.load(f)
+        print('Successfully Read User (theta) / Item (beta) parameter file.')
+        return theta_estimate, beta_estimate

@@ -5,7 +5,7 @@ import torch
 import wandb
 
 from dkt import trainer
-from configs import load_config
+from repo.base_code.code.dkt.dkt.configs import load_config
 from dkt.dataloader import Preprocess
 from dkt.utils import get_logger, set_seeds, logging_conf
 

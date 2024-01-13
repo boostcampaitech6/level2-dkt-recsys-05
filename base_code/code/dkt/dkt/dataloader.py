@@ -11,8 +11,8 @@ from sklearn.preprocessing import LabelEncoder
 
 
 class Preprocess:
-    def __init__(self, args):
-        self.args = args
+    def __init__(self, cfg):
+        self.cfg = cfg
         self.train_data = None
         self.test_data = None
 
@@ -40,14 +40,14 @@ class Preprocess:
         return data_1, data_2
 
     def __save_labels(self, encoder: LabelEncoder, name: str) -> None:
-        le_path = os.path.join(self.args.asset_dir, name + "_classes.npy")
+        le_path = os.path.join(self.cfg['asset_dir'], name + "_classes.npy")
         np.save(le_path, encoder.classes_)
 
     def __preprocessing(self, df: pd.DataFrame, is_train: bool = True) -> pd.DataFrame:
         cate_cols = ["assessmentItemID", "testId", "KnowledgeTag"]
 
-        if not os.path.exists(self.args.asset_dir):
-            os.makedirs(self.args.asset_dir)
+        if not os.path.exists(self.cfg['asset_dir']):
+            os.makedirs(self.cfg['asset_dir'])
 
         for col in cate_cols:
             le = LabelEncoder()
@@ -57,7 +57,7 @@ class Preprocess:
                 le.fit(a)
                 self.__save_labels(le, col)
             else:
-                label_path = os.path.join(self.args.asset_dir, col + "_classes.npy")
+                label_path = os.path.join(self.cfg['asset_dir'], col + "_classes.npy")
                 le.classes_ = np.load(label_path)
 
                 df[col] = df[col].apply(
@@ -83,21 +83,21 @@ class Preprocess:
         return df
 
     def load_data_from_file(self, file_name: str, is_train: bool = True) -> np.ndarray:
-        csv_file_path = os.path.join(self.args.data_dir, file_name)
+        csv_file_path = os.path.join(self.cfg['data_dir'], file_name)
         df = pd.read_csv(csv_file_path)  # , nrows=100000)
         df = self.__feature_engineering(df)
         df = self.__preprocessing(df, is_train)
 
         # 추후 feature를 embedding할 시에 embedding_layer의 input 크기를 결정할때 사용
 
-        self.args.n_questions = len(
-            np.load(os.path.join(self.args.asset_dir, "assessmentItemID_classes.npy"))
+        self.cfg['n_questions'] = len(
+            np.load(os.path.join(self.cfg['asset_dir'], "assessmentItemID_classes.npy"))
         )
-        self.args.n_tests = len(
-            np.load(os.path.join(self.args.asset_dir, "testId_classes.npy"))
+        self.cfg['n_tests'] = len(
+            np.load(os.path.join(self.cfg['asset_dir'], "testId_classes.npy"))
         )
-        self.args.n_tags = len(
-            np.load(os.path.join(self.args.asset_dir, "KnowledgeTag_classes.npy"))
+        self.cfg['n_tags'] = len(
+            np.load(os.path.join(self.cfg['asset_dir'], "KnowledgeTag_classes.npy"))
         )
 
         df = df.sort_values(by=["userID", "Timestamp"], axis=0)
@@ -124,13 +124,13 @@ class Preprocess:
 
 
 class DKTDataset(torch.utils.data.Dataset):
-    def __init__(self, data: np.ndarray, args):
+    def __init__(self, data: np.ndarray, cfg):
         self.data = data
-        self.max_seq_len = args.max_seq_len
+        self.max_seq_len = cfg['max_seq_len']
 
     def __getitem__(self, index: int) -> dict:
         row = self.data[index]
-        
+
         # Load from data
         test, question, tag, correct = row[0], row[1], row[2], row[3]
         data = {
@@ -155,7 +155,7 @@ class DKTDataset(torch.utils.data.Dataset):
             mask = torch.zeros(self.max_seq_len, dtype=torch.int16)
             mask[-seq_len:] = 1
         data["mask"] = mask
-        
+
         # Generate interaction
         interaction = data["correct"] + 1  # 패딩을 위해 correct값에 1을 더해준다.
         interaction = interaction.roll(shifts=1)
@@ -170,26 +170,26 @@ class DKTDataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
-def get_loaders(args, train: np.ndarray, valid: np.ndarray) -> Tuple[torch.utils.data.DataLoader]:
+def get_loaders(cfg, train: np.ndarray, valid: np.ndarray) -> Tuple[torch.utils.data.DataLoader]:
     pin_memory = False
     train_loader, valid_loader = None, None
 
     if train is not None:
-        trainset = DKTDataset(train, args)
+        trainset = DKTDataset(train, cfg)
         train_loader = torch.utils.data.DataLoader(
             trainset,
-            num_workers=args.num_workers,
+            num_workers=cfg['num_workers'],
             shuffle=True,
-            batch_size=args.batch_size,
+            batch_size=cfg['batch_size'],
             pin_memory=pin_memory,
         )
     if valid is not None:
-        valset = DKTDataset(valid, args)
+        valset = DKTDataset(valid, cfg)
         valid_loader = torch.utils.data.DataLoader(
             valset,
-            num_workers=args.num_workers,
+            num_workers=cfg['num_workers'],
             shuffle=False,
-            batch_size=args.batch_size,
+            batch_size=cfg['batch_size'],
             pin_memory=pin_memory,
         )
 

@@ -1,5 +1,6 @@
 program: train_sweep.py
 method: bayes
+project: "sweep_test"
 metric:
   name: best_auc
   goal: maximize

@@ -90,11 +90,11 @@ def train(model: nn.Module, train_loader, optimizer: torch.optim.Optimizer, loss
         optimizer.step()
 
         total_loss += loss.item()
-        target_list.append(target.detach())
-        output_list.append(output.detach())
+        target_list.append(target.detach().cpu())
+        output_list.append(output.detach().cpu())
 
-    target_list = torch.concat(target_list).cpu().numpy()
-    output_list = torch.concat(output_list).cpu().numpy()
+    target_list = torch.concat(target_list).numpy()
+    output_list = torch.concat(output_list).numpy()
 
     acc = accuracy_score(y_true=target_list, y_pred=output_list > 0.5)
     auc = roc_auc_score(y_true=target_list, y_score=output_list)
@@ -112,11 +112,11 @@ def validate(model: nn.Module, valid_loader):
         output_list = []
         for cate_x, cont_x, mask, target in tqdm(valid_loader, mininterval=1):
             output = model(cate_x, cont_x, mask)
-            target_list.append(target.detach())
-            output_list.append(output.detach())
+            target_list.append(target.detach().cpu())
+            output_list.append(output.detach().cpu())
         
-    target_list = torch.concat(target_list).cpu().numpy()
-    output_list = torch.concat(output_list).cpu().numpy()
+    target_list = torch.concat(target_list).numpy()
+    output_list = torch.concat(output_list).numpy()
 
     acc = accuracy_score(y_true=target_list, y_pred=output_list > 0.5)
     auc = roc_auc_score(y_true=target_list, y_score=output_list)

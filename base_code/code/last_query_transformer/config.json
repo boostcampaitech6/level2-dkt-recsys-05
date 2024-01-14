@@ -7,11 +7,10 @@
     "hidden_size" : 128,
     "emb_size" : 128,
     "nlayers" : 2,
-    "nheads" : 8,
+    "n_head" : 8,
     "seq_len" : 256,
     "target_size" : 1,
-    "index_per_step" : 2,
-    "n_epochs" : 5, 
+    "n_epochs" : 10, 
     "lr" : 0.001, 
 
     "cate_cols" : ["userID", "assessmentItemID", "KnowledgeTag"],

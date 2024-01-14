@@ -4,10 +4,10 @@ import argparse
 import torch
 import wandb
 
-from transformer.args import parse_args
-from transformer.datasets import TransformerDataset, PrepareData
-from transformer import trainer
-from transformer.utils import get_logger, set_seeds, logging_conf, CFG
+from last_query_transformer.args import parse_args
+from last_query_transformer.datasets import TransformerDataset, PrepareData
+from last_query_transformer import trainer
+from last_query_transformer.utils import get_logger, set_seeds, logging_conf, CFG
 
 
 logger = get_logger(logging_conf)

@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, roc_auc_score
 import torch
 from torch import nn
-from .model import TransformerModel, LSTM
+from .model import CustomModel
 from .datasets import TransformerDataset
 from torch.utils.data import DataLoader
 import wandb
@@ -18,10 +18,7 @@ logger = get_logger(logger_conf=logging_conf)
 
 
 def build(cfg):
-    model = nn.Sequential(
-        TransformerModel(cfg),
-        LSTM(cfg)
-    )
+    model = CustomModel(cfg)
 
     if cfg.train:
         pass

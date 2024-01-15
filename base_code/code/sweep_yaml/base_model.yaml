@@ -1,0 +1,24 @@
+program: train_sweep.py
+method: bayes
+project: "sweep_test"
+metric:
+  name: best_auc
+  goal: maximize
+parameters:
+  max_seq_len:
+    values: [10, 15, 20]
+  n_layers:
+    values: [1, 2, 3, 4, 5, 6]
+  n_heads:
+    values: [1, 2, 3, 4, 5, 6]
+  drop_out:
+    min: 0.0
+    max: 0.5
+  lr:
+    min: 0.0001
+    max: 0.02
+  clip_grad:
+    values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 19]
+
+  optimizer:
+    values: ["adam", "adamW", "NAdam"]

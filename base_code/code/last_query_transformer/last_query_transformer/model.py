@@ -60,6 +60,7 @@ class MultiHeadAttentionForLSTM(nn.Module):
         self.d_feat = cfg.hidden_size
         self.n_head = cfg.n_head
         self.d_head = self.d_feat // self.n_head
+        self.seq_len = cfg.seq_len
         self.sq_d_k = np.sqrt(self.d_head)
         self.dropout = nn.Dropout(p=cfg.dropout)
 
@@ -85,8 +86,8 @@ class MultiHeadAttentionForLSTM(nn.Module):
  
         scores = torch.matmul(Q, K.transpose(-1, -2)) / self.sq_d_k 
         if mask is not None:
-            mask = mask.unsqueeze(1).unsqueeze(2).expand_as(scores)
-            scores = scores.masked_fill(mask == 0, -1e+7)
+            mask = mask.unsqueeze(1).unsqueeze(2).expand(scores)
+            scores = scores.masked_fill(mask, -1e+9)
         attention = torch.softmax(scores, dim=-1)
         output = torch.matmul(self.dropout(attention), V) 
 
@@ -130,8 +131,9 @@ class MultiHeadAttention(nn.Module):
  
         scores = torch.matmul(Q, K.transpose(-1, -2)) / self.sq_d_k 
         if mask is not None:
-            mask = mask.unsqueeze(1).unsqueeze(2).expand_as(scores)
-            scores = scores.masked_fill(mask == 0, -1e+7)
+            mask = mask.unsqueeze(1).unsqueeze(2).expand(n_batch, self.n_head, self.seq_len, self.seq_len)
+            mask = torch.logical_or(mask, mask.transpose(-1, -2))
+            scores = scores.masked_fill(mask, -1e+9)
         attention = torch.softmax(scores, dim=-1)
         output = torch.matmul(self.dropout(attention), V) 
 

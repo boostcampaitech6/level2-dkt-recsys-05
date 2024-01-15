@@ -46,12 +46,13 @@ class TransformerDataset(Dataset):
             # 0으로 채워진 output tensor 제작                  
             cate_feature = torch.zeros(self.max_seq_len, len(self.cate_cols), dtype=torch.long)
             cont_feature = torch.zeros(self.max_seq_len, len(self.cont_cols), dtype=torch.float)
-            mask = torch.zeros(self.max_seq_len, dtype=torch.int16)
+            mask = torch.BoolTensor(self.max_seq_len)
         
             # tensor에 값 채워넣기
             cate_feature[-seq_len:] = torch.ShortTensor(self.cate_features[start_index:end_index]) # 16bit signed integer
             cont_feature[-seq_len:] = torch.HalfTensor(self.cont_features[start_index:end_index]) # 16bit float
-            mask[-seq_len:] = 1        
+            mask[:-seq_len] = True
+            mask[-seq_len:] = False        
                 
             # target은 꼭 cont_feature의 맨 뒤에 놓자
             target = torch.cuda.FloatTensor([cont_feature[-1, -1]])

@@ -8,9 +8,18 @@ def parse_args():
     parser.add_argument("--device", default="cpu", type=str, help="cpu or gpu")
     parser.add_argument(
         "--data_dir",
-        default="/opt/ml/data/",
+        default="/opt/ml/level2-dkt-recsys-05/data/",
         type=str,
         help="data directory",
+    )
+    parser.add_argument(
+        "--yaml_dir",
+        default="/opt/ml/level2-dkt-recsys-05/base_code/code/sweep_yaml/",
+        type=str,
+        help="yaml directory",
+    )
+    parser.add_argument(
+        "--yaml", default="base_model.yaml", type=str, help="yaml file name"
     )
     parser.add_argument(
         "--asset_dir", default="asset/", type=str, help="data directory"

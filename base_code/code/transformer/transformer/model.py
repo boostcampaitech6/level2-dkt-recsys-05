@@ -38,8 +38,8 @@ class TransformerModel(nn.Module):
         self.config = BertConfig( 
             3, # not used
             hidden_size=cfg.hidden_size,
-            num_hidden_layers=cfg.nlayers,
-            num_attention_heads=cfg.nheads,
+            num_hidden_layers=cfg.n_layers,
+            num_attention_heads=cfg.n_heads,
             intermediate_size=cfg.hidden_size,
             hidden_dropout_prob=cfg.dropout,
             attention_probs_dropout_prob=cfg.dropout,

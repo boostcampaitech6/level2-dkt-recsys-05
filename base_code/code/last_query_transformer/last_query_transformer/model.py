@@ -155,4 +155,18 @@ class LSTM(nn.Module):
         out, _ = self.lstm(input)
         out = out.contiguous()
         out = self.lin_O(out)
+        out = out.squeeze(-1)
+
         return out
+    
+
+class CustomModel(nn.Module):
+    def __init__(self, cfg):
+        super(CustomModel, self).__init__()
+        self.transformer = TransformerModel(cfg)
+        self.lstm = LSTM(cfg)
+
+    def forward(self, cate_x, cont_x, mask):
+        transformer_out = self.transformer(cate_x, cont_x, mask)
+        output = self.lstm(transformer_out)
+        return output

@@ -29,7 +29,7 @@ class TransformerModel(nn.Module):
             nn.LayerNorm(cfg.hidden_size),
         )
         
-        self.encoder = MultiHeadAttention(cfg)        
+        self.encoder = MultiHeadAttentionForLSTM(cfg)        
         
         
     def forward(self, cate_x, cont_x, mask):        
@@ -47,16 +47,14 @@ class TransformerModel(nn.Module):
         seq_emb = torch.cat([cate_emb, cont_emb], 2)
         seq_emb = self.comb_proj(seq_emb)
 
-        encoded_layers = self.encoder(seq_emb, mask)
-        
-        pred_y = encoded_layers[:, -1:, -1]
+        out = self.encoder(seq_emb, mask)
 
-        return pred_y
+        return out
 
 
-class MultiHeadAttention(nn.Module):
+class MultiHeadAttentionForLSTM(nn.Module):
     def __init__(self, cfg, USE_BIAS=True):
-        super(MultiHeadAttention,self).__init__()
+        super(MultiHeadAttentionForLSTM, self).__init__()
         if (cfg.hidden_size % cfg.n_head) != 0:
             raise ValueError("d_feat(%d) should be divisible by b_head(%d)"%(cfg.hidden_size, cfg.n_head))
         self.d_feat = cfg.hidden_size
@@ -65,7 +63,51 @@ class MultiHeadAttention(nn.Module):
         self.sq_d_k = np.sqrt(self.d_head)
         self.dropout = nn.Dropout(p=cfg.dropout)
 
-        self.lin_Q = nn.Linear(self.d_feat, self.d_feat, USE_BIAS)  # the input dim needs to be changed to the size of seq_emb
+        self.lin_Q = nn.Linear(self.d_feat, self.d_feat, USE_BIAS)
+        self.lin_K = nn.Linear(self.d_feat, self.d_feat, USE_BIAS)
+        self.lin_V = nn.Linear(self.d_feat, self.d_feat, USE_BIAS)
+        
+
+    def forward(self, input, mask=None):
+        n_batch = input.shape[0]
+        
+        Q = self.lin_Q(input[:, -1])
+        K = self.lin_K(input)
+        V = self.lin_V(input)
+
+        Q = Q.view(n_batch, -1, self.n_head, self.d_head)
+        K = K.view(n_batch, -1, self.n_head, self.d_head)
+        V = V.view(n_batch, -1, self.n_head, self.d_head)
+
+        Q = Q.transpose(1, 2)
+        K = K.transpose(1, 2)
+        V = V.transpose(1, 2)
+ 
+        scores = torch.matmul(Q, K.transpose(-1, -2)) / self.sq_d_k 
+        if mask is not None:
+            mask = mask.unsqueeze(1).unsqueeze(2).expand_as(scores)
+            scores = scores.masked_fill(mask == 0, -1e+7)
+        attention = torch.softmax(scores, dim=-1)
+        output = torch.matmul(self.dropout(attention), V) 
+
+        output = output.transpose(1, 2).contiguous()
+        output = output.view(n_batch, -1, self.d_feat)
+
+        return output
+
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, cfg, USE_BIAS=True):
+        super(MultiHeadAttention, self).__init__()
+        if (cfg.hidden_size % cfg.n_head) != 0:
+            raise ValueError("d_feat(%d) should be divisible by b_head(%d)"%(cfg.hidden_size, cfg.n_head))
+        self.d_feat = cfg.hidden_size
+        self.n_head = cfg.n_head
+        self.d_head = self.d_feat // self.n_head
+        self.sq_d_k = np.sqrt(self.d_head)
+        self.dropout = nn.Dropout(p=cfg.dropout)
+
+        self.lin_Q = nn.Linear(self.d_feat, self.d_feat, USE_BIAS)
         self.lin_K = nn.Linear(self.d_feat, self.d_feat, USE_BIAS)
         self.lin_V = nn.Linear(self.d_feat, self.d_feat, USE_BIAS)
         self.lin_O = nn.Linear(self.d_feat, self.d_feat, USE_BIAS)
@@ -88,7 +130,7 @@ class MultiHeadAttention(nn.Module):
  
         scores = torch.matmul(Q, K.transpose(-1, -2)) / self.sq_d_k 
         if mask is not None:
-            mask = mask.unsqueeze(1).unsqueeze(-1).expand_as(scores)
+            mask = mask.unsqueeze(1).unsqueeze(2).expand_as(scores)
             scores = scores.masked_fill(mask == 0, -1e+7)
         attention = torch.softmax(scores, dim=-1)
         output = torch.matmul(self.dropout(attention), V) 
@@ -98,3 +140,19 @@ class MultiHeadAttention(nn.Module):
         output = self.lin_O(output)
 
         return output
+
+
+class LSTM(nn.Module):
+    def __init__(self, cfg,):
+        super(LSTM, self).__init__()
+
+        self.lin_O = nn.Linear(cfg.hidden_size, 1)
+        self.lstm = nn.LSTM(
+            cfg.hidden_size, cfg.hidden_size, cfg.n_layers, batch_first=True
+        )
+
+    def forward(self, input):
+        out, _ = self.lstm(input)
+        out = out.contiguous()
+        out = self.lin_O(out)
+        return out

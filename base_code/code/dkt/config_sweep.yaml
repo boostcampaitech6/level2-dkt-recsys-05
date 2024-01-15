@@ -1,0 +1,37 @@
+# config.yaml
+
+seed: 42
+device: "cpu"
+data_dir: /opt/ml/level2-dkt-recsys-05/data/
+yaml_dir: "/opt/ml/level2-dkt-recsys-05/base_code/code/sweep_yaml/"
+yaml: "base_model.yaml"
+asset_dir: "asset/"
+file_name: "train_data.csv"
+model_dir: "models/"
+model_name: "best_model.pt"
+output_dir: "outputs/"
+test_file_name: "test_data.csv"
+max_seq_len: 20
+num_workers: 1
+
+# model
+hidden_dim: 64
+n_layers: 2
+n_heads: 2
+drop_out: 0.2
+
+# train
+n_epochs: 20
+batch_size: 64
+lr: 0.0001
+clip_grad: 10
+patience: 5
+log_steps: 50
+
+# important
+model: "lstm"
+optimizer: "NAdam"
+scheduler: "plateau"
+
+# wandb
+project: dkt_jsj

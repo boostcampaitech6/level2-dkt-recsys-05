@@ -208,8 +208,6 @@ pyrightconfig.json
 
 # experiment
 /exp/
-/feature_importances/
-/model/
 
 /src/train.yaml
 

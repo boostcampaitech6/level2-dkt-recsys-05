@@ -24,7 +24,7 @@ def generate_exp_code() -> str:
         if dir.split("_")[0].isdigit():
             last_exp_seq = max(last_exp_seq, int(dir.split("_")[0]))
 
-    return f"{last_exp_seq}_{random_string.upper()}"
+    return f"{last_exp_seq+1}_{random_string.upper()}"
 
 
 def get_path(dir, path):

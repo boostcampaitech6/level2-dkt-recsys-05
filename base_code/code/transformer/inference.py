@@ -19,14 +19,13 @@ def main(cfg):
     cfg.train = False 
 
     logger.info("Preparing data ...")
-    test_data = PrepareData(cfg).get_data()
-    test_data = TransformerDataset(test_data, cfg)
+    prepared = PrepareData(cfg).get_data()
 
     logger.info("Loading Model ...")
     model: torch.nn.Module = trainer.build(cfg)
 
     logger.info("Make Predictions & Save Submission ...")
-    trainer.inference(cfg, model=model, data=test_data, output_dir=cfg.output_dir)
+    trainer.inference(cfg, model=model, prepared=prepared, output_dir=cfg.output_dir)
 
 if __name__ == "__main__":
     args = parse_args()

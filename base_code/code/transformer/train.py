@@ -21,14 +21,13 @@ def main(cfg: CFG):
     cfg.train = True
 
     logger.info("Preparing data ...")
-    train_data = PrepareData(cfg).get_data()
-    train_data = TransformerDataset(train_data, cfg)
+    prepared = PrepareData(cfg).get_data()
 
     logger.info("Building Model ...")
     model = trainer.build(cfg)
     
     logger.info("Start Training ...")
-    trainer.run(model=model, train_data=train_data, cfg=cfg)
+    trainer.run(model=model, prepared=prepared, cfg=cfg)
 
 
 if __name__ == "__main__":

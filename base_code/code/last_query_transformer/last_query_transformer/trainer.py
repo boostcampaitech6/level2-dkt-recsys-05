@@ -44,7 +44,7 @@ def run(model: nn.Module, train_data, cfg):
     n_epochs=cfg.n_epochs
     learning_rate=cfg.lr
     optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
-    loss_fun = nn.BCEWithLogitsLoss()
+    loss_fun = nn.BCELoss()
 
     logger.info(f"Training Started : n_epochs={n_epochs}")
     best_auc, best_epoch = 0, -1

@@ -1,8 +1,6 @@
-import json
-import os
-from typing import Optional
 from optuna import Trial
-import wandb
+import pandas as pd
+from sklearn.model_selection import StratifiedKFold
 from xgboost import XGBClassifier
 from xgboost import plot_importance
 from optuna.integration.xgboost import XGBoostPruningCallback
@@ -13,25 +11,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 from wandb.xgboost import WandbCallback
 
-from config import XGBoostConfig
 
+from config import Config
+from utils.common import new_experiment, get_path, update_experiment
 
 
 class XGBoost:
     def __init__(
         self,
-        config: XGBoostConfig,
-        best_params: Optional[dict],
-        use_columns: list[str],
-        X_train,
-        y_train,
-        X_valid,
-        y_valid,
-        test_GB,
+        config: Config,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_valid: pd.DataFrame,
+        y_valid: pd.Series,
+        test_GB: pd.DataFrame,
         exp_code: str,
     ):
-        self.config = config
-        self.use_columns = use_columns
+        self.config = config.xgb
+        self.use_columns = config.use_columns
 
         self.X_train = X_train
         self.y_train = y_train
@@ -41,53 +38,18 @@ class XGBoost:
 
         self.exp_code = exp_code
 
-        self.best_params = best_params
+        self.best_params = config.best_params
+        self.hpo_config = config.hpo
+        self.fold_config = config.fold
 
-        self.init_experiment()
-
-    def _write_path(self, dir, path):
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-
-        return os.path.join(dir, path)
-
-    def init_experiment(self):
-        base = "exp/"
-        dir_list = os.listdir(base)
-        last_exp_seq = 0
-        for dir in dir_list:
-            if dir.split("_")[0].isdigit():
-                last_exp_seq = max(last_exp_seq, int(dir.split("_")[0]))
-
-        self.exp_code = f"{last_exp_seq + 1}_{self.exp_code}"
-
-        write_path = self._write_path(
-            f"exp/{self.exp_code}/",
-            f"exp_{self.exp_code}.json",
+        new_experiment(
+            exp_code,
+            {
+                "exp_code": self.exp_code,
+                "config": self.config.dict(),
+                "use_columns": self.use_columns,
+            },
         )
-
-        exp = {
-            "exp_code": self.exp_code,
-            "config": self.config.dict(),
-            "use_columns": self.use_columns,
-        }
-
-        with open(write_path, "w", encoding="utf8") as w:
-            json.dump(exp, w, ensure_ascii=False, indent=2)
-
-    def update_experiment(self, key, value):
-        write_path = self._write_path(
-            f"exp/{self.exp_code}/",
-            f"exp_{self.exp_code}.json",
-        )
-
-        with open(write_path, "r", encoding="utf8") as r:
-            exp = json.load(r)
-
-        exp[key] = value
-
-        with open(write_path, "w", encoding="utf8") as w:
-            json.dump(exp, w, ensure_ascii=False, indent=2)
 
     def hpo_optimizer(self, trial: Trial):
         param = {
@@ -131,7 +93,7 @@ class XGBoost:
         study.optimize(
             lambda trial: self.hpo_optimizer(trial),
             show_progress_bar=True,
-            n_trials=100,
+            n_trials=self.hpo_config.n_trials,
         )
         self.best_params = study.best_trial.params
         print(
@@ -139,67 +101,141 @@ class XGBoost:
         )
 
     def train_start(self):
-        self.update_experiment("best_params", self.best_params)
-        
+        update_experiment(self.exp_code, {"best_params": self.best_params})
+
+        if self.fold_config.skip:
+            model, proba, _, _, _ = self._train(
+                self.X_train,
+                self.y_train,
+                self.X_valid,
+                self.y_valid,
+                self.test_GB,
+            )
+
+            self.save_feature_importance_plot(model)
+            self.save_model(model)
+            self.save_output(proba)
+        else:
+            skf = StratifiedKFold(
+                n_splits=self.fold_config.n_splits,
+                shuffle=True,
+                random_state=self.config.random_state,
+            )
+
+            valid_auc = []
+            proba_df = pd.DataFrame()
+
+            for fold, (train_idx, valid_idx) in enumerate(
+                skf.split(self.X_train, self.y_train)
+            ):
+                print(f"Fold {fold} Start!")
+                X_train, X_valid = (
+                    self.X_train.iloc[train_idx],
+                    self.X_train.iloc[valid_idx],
+                )
+                y_train, y_valid = (
+                    self.y_train.iloc[train_idx],
+                    self.y_train.iloc[valid_idx],
+                )
+
+                model, proba, roc_auc, accuracy, logloss = self._train(
+                    X_train,
+                    y_train,
+                    X_valid,
+                    y_valid,
+                    self.test_GB,
+                )
+
+                valid_auc.append(roc_auc)
+                proba_df[f"fold_{fold}"] = proba
+
+                self.save_feature_importance_plot(model, fold)
+                self.save_model(model, fold)
+
+                print(f"Fold {fold} Done!")
+                print(
+                    f"ROC-AUC Score : {roc_auc:.4f} / Accuracy : {accuracy:.4f} / Logloss : {logloss:.4f}"
+                )
+
+            proba_df["mean"] = proba_df.mean(axis=1)
+            proba_df["std"] = proba_df.std(axis=1)
+
+            update_experiment(
+                self.exp_code,
+                {
+                    "valid_auc": valid_auc,
+                    "mean_auc": np.mean(valid_auc),
+                    "std_auc": np.std(valid_auc),
+                },
+            )
+
+            self.save_output(proba_df["mean"])
+
+    def _train(self, X_train, y_train, X_valid, y_valid, test_GB):
         pruning_callback = WandbCallback(log_model=True)
 
         model = XGBClassifier(**self.best_params, **self.config.dict()).fit(
-            self.X_train,
-            self.y_train,
-            eval_set=[(self.X_train, self.y_train), (self.X_valid, self.y_valid)],
+            X_train,
+            y_train,
+            eval_set=[(X_train, y_train), (X_valid, y_valid)],
             verbose=100,
             callbacks=[pruning_callback],
         )
 
-        proba = model.predict_proba(self.X_valid)[:, 1]
-        roc_auc = roc_auc_score(self.y_valid, proba)
-        accuracy = accuracy_score(self.y_valid, np.where(proba >= 0.5, 1, 0))
-        logloss = log_loss(self.y_valid, proba)
+        proba = model.predict_proba(X_valid)[:, 1]
+        roc_auc = roc_auc_score(y_valid, proba)
+        accuracy = accuracy_score(y_valid, np.where(proba >= 0.5, 1, 0))
+        logloss = log_loss(y_valid, proba)
 
         print(
             f"ROC-AUC Score : {roc_auc:.4f} / Accuracy : {accuracy:.4f} / Logloss : {logloss:.4f}"
         )
 
-        self.update_experiment("roc_auc", roc_auc)
-        self.update_experiment("accuracy", accuracy)
-        self.update_experiment("logloss", logloss)
+        update_experiment(
+            self.exp_code,
+            {
+                "roc_auc": roc_auc,
+                "accuracy": accuracy,
+                "logloss": logloss,
+            },
+        )
 
-        proba = model.predict_proba(self.test_GB)[:, 1]
+        proba = model.predict_proba(test_GB)[:, 1]
 
-        self.save_feature_importance_plot(model)
-        self.save_model(model)
-        self.save_output(proba)
+        return model, proba, roc_auc, accuracy, logloss
 
-    def save_feature_importance_plot(self, model):
+    def save_feature_importance_plot(self, model, seq=0):
         _, axes = plt.subplots(nrows=1, ncols=2, figsize=(20, 10))
         plot_importance(model, ax=axes[0], importance_type="gain")
         axes[0].set_title("Feature Importance (type = gain)")
         plot_importance(model, ax=axes[1], importance_type="weight")
         axes[1].set_title("Feature Importance (type = weight)")
 
-        write_path = self._write_path(
-            f"exp/{self.exp_code}/",
-            f"feature_importances_{self.exp_code}.png",
-        )
-
         plt.tight_layout()
-        plt.savefig(write_path)
-
-    def save_model(self, model):
-        write_path = self._write_path(
-            f"exp/{self.exp_code}/",
-            f"model_{self.exp_code}.model",
+        plt.savefig(
+            get_path(
+                f"exp/{self.exp_code}/",
+                f"feature_importances_{self.exp_code}_F{seq}.png",
+            )
         )
 
-        model.save_model(write_path)
+    def save_model(self, model, seq=0):
+        model.save_model(
+            get_path(
+                f"exp/{self.exp_code}/",
+                f"model_{self.exp_code}_F{seq}.model",
+            )
+        )
 
     def save_output(self, proba):
-        write_path = self._write_path(
-            f"exp/{self.exp_code}/",
-            f"output_{self.exp_code}.csv",
-        )
-
-        with open(write_path, "w", encoding="utf8") as w:
+        with open(
+            get_path(
+                f"exp/{self.exp_code}/",
+                f"output_{self.exp_code}.csv",
+            ),
+            "w",
+            encoding="utf8",
+        ) as w:
             w.write("id,prediction\n")
             for id, p in enumerate(proba):
                 w.write("{},{}\n".format(id, p))

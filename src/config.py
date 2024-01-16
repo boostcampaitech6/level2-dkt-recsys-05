@@ -7,6 +7,8 @@ import yaml
 
 class Config(BaseModel):
     seed = 42
+    hpo: "HPOConfig"
+    fold: "FoldConfig"
     data_dir: str = "/data/ephemeral/data/"
     data_preprocessed_parquet: str = "data_preprocessed.parquet"
     wandb_key: Optional[str] = None
@@ -16,7 +18,7 @@ class Config(BaseModel):
 
     # model config
     xgb: Optional["XGBoostConfig"]
-    
+
     best_params: Optional[dict] = {
         "booster": "dart",
         "max_depth": 13,
@@ -32,6 +34,16 @@ class Config(BaseModel):
 
     # feature config
     use_columns: list[str] = []
+
+
+class HPOConfig(BaseModel):
+    skip: bool = False
+    n_trials: int = 100
+
+
+class FoldConfig(BaseModel):
+    skip: bool = False
+    n_splits: int = 5
 
 
 class XGBoostConfig(BaseModel):

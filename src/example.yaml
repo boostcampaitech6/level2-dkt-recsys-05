@@ -1,4 +1,10 @@
 seed: 42
+hpo:
+  skip: True
+  n_trials: 100
+fold:
+  skip: False
+  n_splits: 5
 device: cuda
 data_dir: /data/ephemeral/level2-dkt-recsys-05/data/
 data_preprocessed_parquet: data_preprocessed.parquet

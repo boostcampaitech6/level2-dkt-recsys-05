@@ -3,6 +3,7 @@ import os
 from optuna import Trial
 from xgboost import XGBClassifier
 from xgboost import plot_importance
+from optuna.integration.xgboost import XGBoostPruningCallback
 from optuna.samplers import TPESampler
 from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
 import optuna
@@ -21,6 +22,7 @@ class XGBoost:
         y_train,
         X_valid,
         y_valid,
+        test_GB,
         exp_code: str,
     ):
         self.config = config
@@ -30,20 +32,21 @@ class XGBoost:
         self.y_train = y_train
         self.X_valid = X_valid
         self.y_valid = y_valid
+        self.test_GB = test_GB
 
         self.exp_code = exp_code
 
         self.best_params = {
-            "booster": "gbtree",
-            "max_depth": 11,
-            "learning_rate": 0.5,
-            "min_child_weight": 3,
-            "gamma": 1e-05,
-            "colsample_bytree": 0.1,
-            "lambda": 1,
-            "alpha": 10,
-            "subsample": 0.8,
-            "max_delta_step": 1,
+            "booster": "dart",
+            "max_depth": 13,
+            "learning_rate": 0.05,
+            "min_child_weight": 6,
+            "gamma": 1,
+            "colsample_bytree": 0.5,
+            "lambda": 10,
+            "alpha": 1,
+            "subsample": 1.0,
+            "max_delta_step": 5,
         }
 
         self.init_experiment()
@@ -55,8 +58,17 @@ class XGBoost:
         return os.path.join(dir, path)
 
     def init_experiment(self):
+        base = "exp/"
+        dir_list = os.listdir(base)
+        last_exp_seq = 0
+        for dir in dir_list:
+            if dir.split("_")[0].isdigit():
+                last_exp_seq = max(last_exp_seq, int(dir.split("_")[0]))
+
+        self.exp_code = f"{last_exp_seq + 1}_{self.exp_code}"
+
         write_path = self._write_path(
-            "exp/",
+            f"exp/{self.exp_code}/",
             f"exp_{self.exp_code}.json",
         )
 
@@ -71,7 +83,7 @@ class XGBoost:
 
     def update_experiment(self, key, value):
         write_path = self._write_path(
-            "exp/",
+            f"exp/{self.exp_code}/",
             f"exp_{self.exp_code}.json",
         )
 
@@ -103,6 +115,8 @@ class XGBoost:
             ),
         }
 
+        pruning_callback = XGBoostPruningCallback(trial, "validation_1-" + "auc")
+
         xgb_model = XGBClassifier(
             **param,
             **self.config.dict(),
@@ -111,6 +125,7 @@ class XGBoost:
             self.y_train,
             eval_set=[(self.X_train, self.y_train), (self.X_valid, self.y_valid)],
             verbose=300,
+            callbacks=[pruning_callback],
         )
 
         return roc_auc_score(self.y_valid, xgb_model.predict_proba(self.X_valid)[:, 1])
@@ -130,6 +145,8 @@ class XGBoost:
         )
 
     def train_start(self):
+        self.update_experiment("best_params", self.best_params)
+
         model = XGBClassifier(**self.best_params, **self.config.dict()).fit(
             self.X_train,
             self.y_train,
@@ -137,10 +154,11 @@ class XGBoost:
             verbose=100,
         )
 
-        proba = model.predict_proba(self.X_valid)
-        roc_auc = roc_auc_score(self.y_valid, proba[:, 1])
-        accuracy = accuracy_score(self.y_valid, np.where(proba[:, 1] >= 0.5, 1, 0))
-        logloss = log_loss(self.y_valid, proba[:, 1])
+        proba = model.predict_proba(self.X_valid)[:, 1]
+        roc_auc = roc_auc_score(self.y_valid, proba)
+        accuracy = accuracy_score(self.y_valid, np.where(proba >= 0.5, 1, 0))
+        logloss = log_loss(self.y_valid, proba)
+
         print(
             f"ROC-AUC Score : {roc_auc:.4f} / Accuracy : {accuracy:.4f} / Logloss : {logloss:.4f}"
         )
@@ -149,9 +167,11 @@ class XGBoost:
         self.update_experiment("accuracy", accuracy)
         self.update_experiment("logloss", logloss)
 
+        proba = model.predict_proba(self.test_GB)[:, 1]
+
         self.save_feature_importance_plot(model)
         self.save_model(model)
-        self.save_output(proba[:, 1])
+        self.save_output(proba)
 
     def save_feature_importance_plot(self, model):
         _, axes = plt.subplots(nrows=1, ncols=2, figsize=(20, 10))
@@ -161,7 +181,7 @@ class XGBoost:
         axes[1].set_title("Feature Importance (type = weight)")
 
         write_path = self._write_path(
-            "feature_importances/",
+            f"exp/{self.exp_code}/",
             f"feature_importances_{self.exp_code}.png",
         )
 
@@ -170,15 +190,15 @@ class XGBoost:
 
     def save_model(self, model):
         write_path = self._write_path(
-            "model/",
-            f"model_{self.exp_code}.json",
+            f"exp/{self.exp_code}/",
+            f"model_{self.exp_code}.model",
         )
 
         model.save_model(write_path)
 
     def save_output(self, proba):
         write_path = self._write_path(
-            "submit/",
+            f"exp/{self.exp_code}/",
             f"output_{self.exp_code}.csv",
         )
 

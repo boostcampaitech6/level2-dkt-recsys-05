@@ -9,6 +9,10 @@ class Config(BaseModel):
     seed = 42
     data_dir: str = "/data/ephemeral/data/"
     data_preprocessed_parquet: str = "data_preprocessed.parquet"
+    wandb_key: Optional[str] = None
+    wandb_team: Optional[str] = None
+    wandb_project: Optional[str] = None
+    wandb_run_name: Optional[str] = None
 
     # model config
     xgb: Optional["XGBoostConfig"]
@@ -26,6 +30,7 @@ class XGBoostConfig(BaseModel):
     tree_method: str = "hist"
     early_stopping_rounds: int = 100
     random_state: int = 42
+    updater: str = "grow_gpu_hist"
 
 
 Config.update_forward_refs()

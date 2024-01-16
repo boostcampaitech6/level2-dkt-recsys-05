@@ -1,6 +1,11 @@
 seed: 42
 device: cuda
 data_dir: /data/ephemeral/level2-dkt-recsys-05/data/
+data_preprocessed_parquet: data_preprocessed.parquet
+wandb_key: <fill in your wandb key>
+wandb_team: <fill in your wandb team name>
+wandb_project: <fill in your wandb project name>
+wandb_run_name: <fill in your wandb run name>
 xgb:
   n_estimators: 1000
   objective: binary:logistic

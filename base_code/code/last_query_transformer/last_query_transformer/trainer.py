@@ -32,12 +32,19 @@ def build(cfg):
     return model
 
 
-def run(model: nn.Module, train_data, cfg):
+def run(model: nn.Module, prepared, cfg):
     model.train()
     model_dir=cfg.model_dir
     os.makedirs(name=model_dir, exist_ok=True)
 
-    train_data, valid_data = split_data(train_data)
+    train_data = prepared['train_data']
+    valid_data = prepared['valid_data']
+    train_cfg = prepared['train_cfg']
+    valid_cfg = prepared['valid_cfg']
+
+    train_data = TransformerDataset(train_data, train_cfg)
+    valid_data = TransformerDataset(valid_data, valid_cfg)
+
     train_loader = DataLoader(train_data, batch_size=cfg.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_data, batch_size=cfg.batch_size, shuffle=True)
 
@@ -125,8 +132,12 @@ def validate(model: nn.Module, valid_loader):
     return auc, acc
 
 
-def inference(cfg, model: nn.Module, data: dict, output_dir: str):
-    test_loader = DataLoader(data, batch_size=cfg.batch_size, shuffle=False)
+def inference(cfg, model: nn.Module, prepared, output_dir: str):
+    test_data = prepared['test_data']
+    test_cfg = prepared['test_cfg']
+
+    test_data = TransformerDataset(test_data, test_cfg)
+    test_loader = DataLoader(test_data, batch_size=cfg.batch_size, shuffle=False)
 
     model.eval()
     with torch.no_grad():
@@ -143,11 +154,3 @@ def inference(cfg, model: nn.Module, data: dict, output_dir: str):
     pd.DataFrame({"prediction": output_list}).to_csv(path_or_buf=write_path, index_label="id")
 
     logger.info("Successfully saved submission as %s", write_path)
-
-
-def split_data(train_data):
-    train_size = int(0.8 * len(train_data))
-    valid_size = len(train_data) - train_size
-    train_data, valid_data = torch.utils.data.random_split(train_data, [train_size, valid_size])
-
-    return train_data, valid_data

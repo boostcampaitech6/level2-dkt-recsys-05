@@ -206,4 +206,11 @@ pyrightconfig.json
 /base_code/code/asset/
 /base_code/code/models/
 
+# experiment
+/exp/
+/feature_importances/
+/model/
+
+/src/train.yaml
+
 # End of https://www.toptal.com/developers/gitignore/api/python

@@ -86,7 +86,7 @@ class MultiHeadAttentionForLSTM(nn.Module):
  
         scores = torch.matmul(Q, K.transpose(-1, -2)) / self.sq_d_k 
         if mask is not None:
-            mask = mask.unsqueeze(1).unsqueeze(2).expand(scores)
+            mask = mask.unsqueeze(1).unsqueeze(2).expand_as(scores)
             scores = scores.masked_fill(mask, -1e+9)
         attention = torch.softmax(scores, dim=-1)
         output = torch.matmul(self.dropout(attention), V) 

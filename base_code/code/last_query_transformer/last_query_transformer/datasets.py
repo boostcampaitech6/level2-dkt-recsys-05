@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 import pandas as pd
 import os
 import copy
+from tqdm import tqdm 
 
 
 class TransformerDataset(Dataset):
@@ -56,13 +57,13 @@ class TransformerDataset(Dataset):
             mask[-seq_len:] = False        
                 
             # target은 꼭 cont_feature의 맨 뒤에 놓자
-            target = torch.cuda.FloatTensor([cont_feature[-1, -1]])
+            target = torch.FloatTensor([cont_feature[-1, -1]])
 
         # data leakage가 발생할 수 있으므로 0으로 모두 채운다
         cont_feature[-1, -1] = 0
         
-        # return cate_feature.to(self.device), cont_feature.to(self.device), mask.to(self.device), target.to(self.device)
-        return cate_feature, cont_feature, mask, target
+        return cate_feature.to(self.device), cont_feature.to(self.device), mask.to(self.device), target.to(self.device)
+        # return cate_feature, cont_feature, mask, target
         
     def __len__(self):
         return self.len
@@ -122,7 +123,7 @@ class PrepareData:
         # nan 값이 0이므로 위해 offset은 1에서 출발한다
         cate_offset = 1
 
-        for col in cate_cols:
+        for col in tqdm(cate_cols):
 
             # 각 column마다 mapper를 만든다
             cate2idx = {}

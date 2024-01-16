@@ -1,6 +1,8 @@
 import json
 import os
+from typing import Optional
 from optuna import Trial
+import wandb
 from xgboost import XGBClassifier
 from xgboost import plot_importance
 from optuna.integration.xgboost import XGBoostPruningCallback
@@ -9,14 +11,17 @@ from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
 import optuna
 import numpy as np
 import matplotlib.pyplot as plt
+from wandb.xgboost import WandbCallback
 
 from config import XGBoostConfig
+
 
 
 class XGBoost:
     def __init__(
         self,
         config: XGBoostConfig,
+        best_params: Optional[dict],
         use_columns: list[str],
         X_train,
         y_train,
@@ -36,18 +41,7 @@ class XGBoost:
 
         self.exp_code = exp_code
 
-        self.best_params = {
-            "booster": "dart",
-            "max_depth": 13,
-            "learning_rate": 0.05,
-            "min_child_weight": 6,
-            "gamma": 1,
-            "colsample_bytree": 0.5,
-            "lambda": 10,
-            "alpha": 1,
-            "subsample": 1.0,
-            "max_delta_step": 5,
-        }
+        self.best_params = best_params
 
         self.init_experiment()
 
@@ -146,12 +140,15 @@ class XGBoost:
 
     def train_start(self):
         self.update_experiment("best_params", self.best_params)
+        
+        pruning_callback = WandbCallback(log_model=True)
 
         model = XGBClassifier(**self.best_params, **self.config.dict()).fit(
             self.X_train,
             self.y_train,
             eval_set=[(self.X_train, self.y_train), (self.X_valid, self.y_valid)],
             verbose=100,
+            callbacks=[pruning_callback],
         )
 
         proba = model.predict_proba(self.X_valid)[:, 1]

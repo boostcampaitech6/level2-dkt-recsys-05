@@ -16,6 +16,19 @@ class Config(BaseModel):
 
     # model config
     xgb: Optional["XGBoostConfig"]
+    
+    best_params: Optional[dict] = {
+        "booster": "dart",
+        "max_depth": 13,
+        "learning_rate": 0.05,
+        "min_child_weight": 6,
+        "gamma": 1,
+        "colsample_bytree": 0.5,
+        "lambda": 10,
+        "alpha": 1,
+        "subsample": 1.0,
+        "max_delta_step": 5,
+    }
 
     # feature config
     use_columns: list[str] = []

@@ -3,7 +3,7 @@ device: cuda
 data_dir: /data/ephemeral/level2-dkt-recsys-05/data/
 data_preprocessed_parquet: data_preprocessed.parquet
 wandb_key: <fill in your wandb key>
-wandb_team: <fill in your wandb team name>
+wandb_team: teemo-dkt
 wandb_project: <fill in your wandb project name>
 wandb_run_name: <fill in your wandb run name>
 xgb:
@@ -15,6 +15,17 @@ xgb:
   tree_method: hist
   early_stopping_rounds: 10
   random_state: 42
+best_params:
+  booster: dart
+  max_depth: 13
+  learning_rate: 0.05
+  min_child_weight: 6
+  gamma: 1
+  colsample_bytree: 0.5
+  lambda: 10
+  alpha: 1
+  subsample: 1.0
+  max_delta_step: 5
 use_columns:  # 아래 컬럼들을 주석처리하며 실험해보세요.
 - userID
 - assessmentItemID

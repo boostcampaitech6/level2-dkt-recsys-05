@@ -59,6 +59,7 @@ if __name__ == "__main__":
 
     xgb = XGBoost(
         config.xgb,
+        config.best_params,
         config.use_columns,
         X_train,
         y_train,

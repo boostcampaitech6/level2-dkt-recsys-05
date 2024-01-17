@@ -4,8 +4,6 @@ import random
 import numpy as np
 import torch
 
-import json
-
 class process:
     def __init__(self, logger, name):
         self.logger = logger
@@ -60,8 +58,22 @@ logging_conf = {  # only used when 'user_wandb==False'
 }
 
 class CFG:
-    def __init__(self, config_file):
-        with open(config_file, 'r') as f:
-            config = json.load(f)
+    def __init__(self, config_file: str):
+        extension = config_file.split(sep='.')[-1]
+        if extension == 'json':
+            import json
+            form = json
+            with open(config_file, 'r') as f:
+                config = form.load(f)
+
+        elif extension == 'yaml':
+            import yaml
+            form = yaml
+            with open(config_file, 'r') as f:
+                config = form.load(f, Loader=yaml.FullLoader)
+
+        else:
+            raise TypeError
+
         for key, value in config.items():
             setattr(self, key, value)

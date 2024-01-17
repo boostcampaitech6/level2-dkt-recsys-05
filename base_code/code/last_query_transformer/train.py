@@ -32,7 +32,7 @@ def main(cfg: CFG):
 
 if __name__ == "__main__":
     args = parse_args()
-    cfg = CFG('config.json')
+    cfg = CFG('config.yaml')
 
     for key, value in vars(args).items():
         if value is not None:  # 명령줄에서 제공된 인자만 업데이트

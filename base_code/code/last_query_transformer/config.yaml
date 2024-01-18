@@ -13,7 +13,7 @@
 "n_head" : 8
 "seq_len" : 256
 "target_size" : 1
-"n_epochs" : 8 
+"n_epochs" : 5 
 "lr" : 0.001
 
 "cate_cols" :

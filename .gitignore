@@ -211,4 +211,9 @@ pyrightconfig.json
 
 /src/train.yaml
 
+# db file
+*/*.db
+*/*.db-shm
+*/*.db-wal
+
 # End of https://www.toptal.com/developers/gitignore/api/python

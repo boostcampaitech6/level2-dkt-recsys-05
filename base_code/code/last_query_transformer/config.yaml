@@ -5,7 +5,7 @@
 "model_name" : "best_model.pt"
 "output_dir" : "./outputs/"
 
-"batch_size" : 32 
+"batch_size" : 256
 "dropout" : 0.2
 "hidden_size" : 128
 "emb_size" : 128
@@ -58,7 +58,6 @@
 - "tag_ElaspedTime_avg"
 - "Correct_User_ElapsedTime"
 - "Wrong_User_ElapsedTime"
-
 - "user_sum"
 - "user_cnt"
 - "user_acc"
@@ -68,7 +67,6 @@
 - "user_testID_sum"
 - "user_testID_cnt"
 - "user_testID_acc"
-
 - "user_testCode_sum"
 - "user_testCode_cnt"
 - "user_testCode_acc"
@@ -78,7 +76,6 @@
 - "user_problemID_sum"
 - "user_problemID_cnt"
 - "user_problemID_acc"
-
 - "user_tag_sum"
 - "user_tag_cnt"
 - "user_tag_acc"
@@ -88,34 +85,30 @@
 - "testID_sum"
 - "testID_cnt"
 - "testID_acc"
-
 # - "testCode_sum" ################
 # - "testCode_cnt" ################
 # - "testCode_acc" ################
 # - "testNum_sum" ################
 # - "testNum_cnt" ################
 # - "testNum_acc" ################
-
 # - "problemID_sum" ################
 # - "problemID_cnt" ################
 # - "problemID_acc" ################
-
 - "tag_sum"
 - "tag_cnt"
 - "tag_acc"
-
 - "user_past_solved"
-- "relative_correct_rate"
-- "correct_rate_before1"
-- "relative_correct_rate_before1"
-- "correct_rate_before2"
-- "relative_correct_rate_before2"
-- "correct_rate_before3"
-- "relative_correct_rate_before3"
-- "correct_rate_before4"
-- "relative_correct_rate_before4"
-- "correct_rate_before5"
-- "relative_correct_rate_before5"
+# - "relative_correct_rate" ################ 
+# - "correct_rate_before1" ################
+# - "relative_correct_rate_before1" ################
+# - "correct_rate_before2" ################
+# - "relative_correct_rate_before2" ################
+# - "correct_rate_before3" ################
+# - "relative_correct_rate_before3" ################
+# - "correct_rate_before4" ################
+# - "relative_correct_rate_before4" ################
+# - "correct_rate_before5" ################
+# - "relative_correct_rate_before5" ################
 - "theta"
 - "beta"
 - "answerCode"

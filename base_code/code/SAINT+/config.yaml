@@ -1,0 +1,45 @@
+# Dir
+data_dir : '/data/ephemeral/data/'
+total_data_name : 'total.csv'    # Train + Test (answerCode -1 제외 (2525956행))
+test_data_name : 'test_data.csv' # Origin Test Data (260114행)
+
+sweep_yaml : '/data/ephemeral/base_code/code/SAINT+/sweep.yaml'
+
+model_dir : '/data/ephemeral/model/'
+model_name : 'saint_0118_main.pt'
+
+submit_dir : '/data/ephemeral/submit/'
+submit_name : 'SAINT_0118_main.csv'
+
+# Model
+n_layers : 2      # Multihead Attention Layer의 수
+n_heads : 4       # One Multihead Attention Layer의 Head 수
+d_model : 64      # Embedding Dimension Size 수
+max_len : 1000    # Positional Encoding의 Max Length
+seq_len : 100     # Sequence Length
+n_question : 9454 # assessmentItemID 수 (9454 고정)
+n_test : 1537     # testID 수 (1537 고정)
+n_code : 9        # testCode 수 (9 고정)
+n_problem : 13    # problemID 수 (13 고정)
+n_answer : 2      # answerCode 수 (2 고정)
+
+
+# Train
+valid_size : 0.98
+seed : 42
+device : 'cuda'
+num_workers : 8
+
+dropout : 0.2
+n_epochs : 100
+patience : 10
+batch_size : 32
+lr : 0.001
+optimizer : 'NAdam' # 'adam', 'AdamW'
+scheduler : 'plateau'
+warmup_step : 4000
+
+# wandb
+# https://wandb.ai/authorize
+project : dkt_ljw
+runname : 'SAINT+_0118'

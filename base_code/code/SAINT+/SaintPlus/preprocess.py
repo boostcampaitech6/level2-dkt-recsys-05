@@ -42,6 +42,8 @@ def ElapsedTime(df) :
     df['elapsed_time'] = df.groupby(['userID', 'testId'], as_index = False)['Timestamp'].diff().shift(0).dt.total_seconds()
     df['elapsed_time'] = df['elapsed_time'].fillna(0)
     df['elapsed_time'] = np.where(df['elapsed_time'] > 3600, np.nan, df['elapsed_time']) # 1시간 이상 결측치 처리
+    
+    df['problemID'] = df['assessmentItemID'].apply(lambda x : x[7:]).astype('int8')
     df['elapsed_time'] = df.groupby('problemID')['elapsed_time'].transform(lambda x : x.fillna(x.mean()))
     df['elapsed_time'] = np.round(df['elapsed_time'])
     return df['elapsed_time']
@@ -87,17 +89,11 @@ def Feature_Engineering(df) :
 def grouping(cfg, df, features, save_name) :
     df_group = df[features].groupby('userID').apply(lambda df : (
             df['assessmentItemID'].values,
-            df['testID'].values,
-            df['testCode'].values,
-            df['problemID'].values,
-            df['KnowledgeTag'].values,
+            df['testId'].values,
             df['lag_time'].values,
             df['elapsed_time'].values, 
             df['item_acc'].values,
             df['user_acc'].values,
-            df['code_acc'].values,
-            df['prob_acc'].values,
-            df['tag_acc'].values,
             df['answerCode'].values
         ))
     
@@ -122,14 +118,14 @@ def Preprocess(cfg, df, is_train = True) :
         print('=' * 50)
 
         print('Start Train and Valid Data Grouping')
-        grouping(cfg, train_df, features, 'Train_Group')
-        grouping(cfg, valid_df, features, 'Valid_Group')
+        grouping(cfg, train_df, features, 'Train_SP')
+        grouping(cfg, valid_df, features, 'Valid_SP')
         print('Finish Preprocess')
     
     # Test Data
     else :
         print('Start Test Data Grouping')
-        grouping(cfg, df, features, 'Test_Group')
+        grouping(cfg, df, features, 'Test_SP')
         print('Finish Preprocess')
 
 

@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import os
 import wandb
-import datetime
 from SaintPlus.utils import load_config, get_logger, seed_everything, logging_conf
 from SaintPlus.preprocess import Preprocess
 from SaintPlus.train import train
@@ -14,14 +13,22 @@ def main(cfg) :
     wandb.login()
     wandb.init(project = cfg['project'], config = cfg)
     
-    logger.info('Preparing data ...')
-    total_data = cfg['data_dir'] + cfg['total_data_name']
-    total_df = pd.read_csv(total_data)
-    Preprocess(cfg, total_df, True)
+    if not (os.path.exists(cfg['data_dir'] + 'Train_SP.pkl.zip') and \
+            os.path.exists(cfg['data_dir'] + 'Valid_SP.pkl.zip') and \
+            os.path.exists(cfg['data_dir'] + 'Test_SP.pkl.zip')) :
+        
+        logger.info('Preparing Data ...')
+        
+        total_data = cfg['data_dir'] + cfg['total_data_name']
+        total_df = pd.read_csv(total_data)
+        Preprocess(cfg, total_df, True)
+        
+        test_data = cfg['data_dir'] + cfg['test_data_name']
+        test_df = pd.read_csv(test_data)
+        Preprocess(cfg, test_df, False)
     
-    test_data = cfg['data_dir'] + cfg['test_data_name']
-    test_df = pd.read_csv(test_data)
-    Preprocess(cfg, test_df, False)
+    else :
+        logger.info('Successed Load Data')
 
     logger.info('Start Training ...')
     train(cfg)

@@ -20,14 +20,11 @@ def inference(cfg) :
     seq_len = cfg['seq_len']
     n_question = cfg['n_question']
     n_test = cfg['n_test']
-    n_code = cfg['n_code']
-    n_problem = cfg['n_problem']
-    n_answer = cfg['n_answer']
 
     dropout = cfg['dropout']
     batch_size = cfg['batch_size']
 
-    with open(cfg['data_dir'] + 'Test_Group.pkl.zip', 'rb') as p :
+    with open(cfg['data_dir'] + 'Test_SP.pkl.zip', 'rb') as p :
         test_group = pickle.load(p)
 
     test_seq = Test_Sequence(test_group, seq_len)
@@ -45,17 +42,17 @@ def inference(cfg) :
     model.eval()
     submission = []
     for step, data in enumerate(test_loader) :
-        content_ids = data[0].to(device).long()
-        time_lag = data[1].to(device).float()
-        ques_elapsed_time = data[2].to(device).float()
-        itemaver = data[3].to(device).float()
-        useraver = data[4].to(device).float()
-        answer_correct = data[5].to(device).long()
+        item_id         = data[0].to(device).long()
+        lag_time        = data[1].to(device).float()
+        elapsed_time    = data[2].to(device).float()
+        item_acc        = data[3].to(device).float()
+        user_acc        = data[4].to(device).float()
+        answer_correct  = data[5].to(device).long()
         
-        preds = model(content_ids, time_lag, ques_elapsed_time, itemaver, useraver, answer_correct)
+        preds = model(item_id, lag_time, elapsed_time, item_acc, user_acc, answer_correct)
         
-        preds1 = preds[:, -1]
-        submission.extend(preds1.data.cpu().numpy())
+        pred = preds[:, -1]
+        submission.extend(pred.data.cpu().numpy())
     print(len(submission))
     print('Finish Inference.')
     return submission

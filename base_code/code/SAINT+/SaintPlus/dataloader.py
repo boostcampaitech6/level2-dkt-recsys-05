@@ -84,7 +84,7 @@ class Train_Sequence(Dataset) :
         label = np.clip(label, 0, 1)
         _answer_code = _answer_code[:-1]
 
-        return _item_id, _test_id, _lag_time, _elapsed_time, _item_acc, _user_acc, _answer_code, label
+        return _item_id, _lag_time, _elapsed_time, _item_acc, _user_acc, _answer_code, label
 
 class Test_Sequence(Dataset) :
     def __init__(self, groups, seq_len) :
@@ -154,5 +154,5 @@ class Test_Sequence(Dataset) :
         label = np.clip(label, 0, 1)
         _answer_code = _answer_code[:-1]
 
-        return _item_id, _test_id, _lag_time, _elapsed_time, _item_acc, _user_acc, _answer_code, label
+        return _item_id, _lag_time, _elapsed_time, _item_acc, _user_acc, _answer_code, label
 

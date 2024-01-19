@@ -34,11 +34,8 @@ def train(cfg) :
     seq_len = cfg['seq_len']
     n_question = cfg['n_question']
     n_test = cfg['n_test']
-    n_code = cfg['n_code']
-    n_problem = cfg['n_problem']
     n_answer = cfg['n_answer']
 
-    valid_size = cfg['valid_size']
     dropout = cfg['dropout']
     n_epochs = cfg['n_epochs']
     patience = cfg['patience']
@@ -46,9 +43,9 @@ def train(cfg) :
     # scheduler = cfg['scheduler']
     
     # train, valid 데이터 가져오기
-    with open(cfg['data_dir'] + f'Train_Group_{int(valid_size * 100)}' + '.pkl.zip', 'rb') as p :
+    with open(cfg['data_dir'] + 'Train_SP.pkl.zip', 'rb') as p :
         train_group = pickle.load(p)
-    with open(cfg['data_dir'] + f'Valid_Group_{int((1 - valid_size) * 100)}' + '.pkl.zip', 'rb') as p :
+    with open(cfg['data_dir'] + 'Valid_SP.pkl.zip', 'rb') as p :
         valid_group = pickle.load(p)
 
     train_seq = Train_Sequence(train_group, seq_len)
@@ -63,14 +60,14 @@ def train(cfg) :
 
     criterion = nn.BCELoss()
     
-    if cfg['optimizer'] == 'adam' :
+    if cfg['optimizer'] == 'Adam' :
         opt = NoamOpt(d_model, 1, cfg['warmup_step'], optim.Adam(model.parameters(), lr = cfg['lr']))
     elif cfg['optimizer'] == 'NAdam' :
         opt = NoamOpt(d_model, 1, cfg['warmup_step'], optim.NAdam(model.parameters(), lr = cfg['lr']))
-    elif cfg['optimizer'] == 'adamW' :
+    elif cfg['optimizer'] == 'AdamW' :
         opt = NoamOpt(d_model, 1, cfg['warmup_step'], optim.AdamW(model.parameters(), lr = cfg['lr']))
     else : 
-        raise ValueError(f"Unsupported optimizer: {cfg['optimizer']}")
+        raise ValueError(f"Unsupported optimizer : {cfg['optimizer']}")
     
     model.to(device)
     criterion.to(device)
@@ -81,7 +78,7 @@ def train(cfg) :
     best_auc = 0
     count = 0
     for epoch in range(n_epochs) :
-        print(f'========== Epoch {epoch + 1} Training ============')
+        print(f'============ Epoch {epoch + 1} Training ============')
         model.train()
         t_s = time.time()
         train_loss = []
@@ -89,17 +86,17 @@ def train(cfg) :
         train_preds = []
         
         for step, data in enumerate(train_loader) :
-            content_ids = data[0].to(device).long()
-            time_lag = data[1].to(device).float()
-            ques_elapsed_time = data[2].to(device).float()
-            itemaver = data[3].to(device).float()
-            useraver = data[4].to(device).float()
-            answer_correct = data[5].to(device).long()
-            label = data[6].to(device).float()
+            item_id         = data[0].to(device).long()
+            lag_time        = data[1].to(device).float()
+            elapsed_time    = data[2].to(device).float()
+            item_acc        = data[3].to(device).float()
+            user_acc        = data[4].to(device).float()
+            answer_correct  = data[5].to(device).long()
+            label           = data[6].to(device).float()
 
             opt.optimizer.zero_grad()
             
-            preds = model(content_ids, time_lag, ques_elapsed_time, itemaver, useraver, answer_correct)
+            preds = model(item_id, lag_time, elapsed_time, item_acc, user_acc, answer_correct)
             loss_mask = (answer_correct != 0)
             preds_masked = torch.masked_select(preds, loss_mask)
             label_masked = torch.masked_select(label, loss_mask)
@@ -115,22 +112,22 @@ def train(cfg) :
         train_loss = np.mean(train_loss)
         train_auc = roc_auc_score(train_labels, train_preds)
         
-        print(f'========== Epoch {epoch + 1} Validation ==========')
+        print(f'============ Epoch {epoch + 1} Validation ============')
         model.eval()
         valid_loss = []
         valid_labels = []
         valid_preds = []
 
         for step, data in enumerate(valid_loader) :
-            content_ids = data[0].to(device).long()
-            time_lag = data[1].to(device).float()
-            ques_elapsed_time = data[2].to(device).float()
-            itemaver = data[3].to(device).float()
-            useraver = data[4].to(device).float()
-            answer_correct = data[5].to(device).long()
-            label = data[6].to(device).float()
-
-            preds = model(content_ids, time_lag, ques_elapsed_time, itemaver, useraver, answer_correct)
+            item_id         = data[0].to(device).long()
+            lag_time        = data[1].to(device).float()
+            elapsed_time    = data[2].to(device).float()
+            item_acc        = data[3].to(device).float()
+            user_acc        = data[4].to(device).float()
+            answer_correct  = data[5].to(device).long()
+            label           = data[6].to(device).float()
+            
+            preds = model(item_id, lag_time, elapsed_time, item_acc, user_acc, answer_correct)
             loss_mask = (answer_correct != 0)
             preds_masked = torch.masked_select(preds, loss_mask)
             label_masked = torch.masked_select(label, loss_mask)
@@ -158,13 +155,13 @@ def train(cfg) :
         t_e = int((time.time() - t_s))
         print(f'Train Loss : {train_loss:.5f} / Train AUC : {train_auc:.5f}')
         print(f'Valid Loss : {valid_loss:.5f} / Valid AUC : {valid_auc:.5f}')
-        print(f'EarlyStop Count : {count} / {cfg["patience"]} / Train Time {t_e} sec')
+        print(f'EarlyStop Count : {count}/{cfg["patience"]} & Train Time {t_e} sec')
         
         wandb.log({'Train Loss' : train_loss,
                    'Train AUC'  : train_auc,
                    'Valid Loss' : valid_loss,
                    'Valid AUC'  : valid_auc,
-                   'Best AUC' : best_auc,
+                   'Best AUC'   : best_auc,
                    'EarlyStop Count' : count})
         
         # EearlyStop

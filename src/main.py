@@ -2,9 +2,11 @@ from config import parse_config
 from dataset import get_data
 from utils.wandb import init as init_wandb
 from utils.common import seed_everything, generate_exp_code
-
+import warnings
 
 from models.xgboost import XGBoost
+
+warnings.filterwarnings("ignore")
 
 
 if __name__ == "__main__":

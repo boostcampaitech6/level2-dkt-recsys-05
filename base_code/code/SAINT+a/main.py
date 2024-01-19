@@ -19,9 +19,9 @@ def main(cfg) :
     wandb.login(key = cfg['key'])
     wandb.init(project = cfg['project'], config = cfg)
     
-    if not (os.path.exists(cfg['data_dir'] + 'Train_Group.pkl.zip') and \
-            os.path.exists(cfg['data_dir'] + 'Valid_Group.pkl.zip') and \
-            os.path.exists(cfg['data_dir'] + 'Test_Group.pkl.zip')) :
+    if not (os.path.exists(cfg['data_dir'] + 'Train_SPA.pkl.zip') and \
+            os.path.exists(cfg['data_dir'] + 'Valid_SPA.pkl.zip') and \
+            os.path.exists(cfg['data_dir'] + 'Test_SPA.pkl.zip')) :
         
         logger.info('Preparing Data ...')
         
@@ -35,7 +35,6 @@ def main(cfg) :
     
     else :
         logger.info('Successed Load Data')
-
 
     logger.info('Start Training ...')
     train(cfg)

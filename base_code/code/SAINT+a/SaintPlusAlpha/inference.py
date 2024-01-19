@@ -28,7 +28,7 @@ def inference(cfg) :
     dropout = cfg['dropout']
     batch_size = cfg['batch_size']
 
-    with open(cfg['data_dir'] + 'Test_Group.pkl.zip', 'rb') as p :
+    with open(cfg['data_dir'] + 'Test_SPA.pkl.zip', 'rb') as p :
         test_group = pickle.load(p)
 
     test_seq = Test_Sequence(test_group, seq_len)

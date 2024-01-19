@@ -156,14 +156,14 @@ def Preprocess(cfg, df, is_train = True) :
         print('=' * 50)
 
         print('Start Train and Valid Data Grouping')
-        grouping(cfg, train_df, features, 'Train_Group')
-        grouping(cfg, valid_df, features, 'Valid_Group')
+        grouping(cfg, train_df, features, 'Train_SPA')
+        grouping(cfg, valid_df, features, 'Valid_SPA')
         print('Finish Preprocess')
     
     # Test Data
     else :
         print('Start Test Data Grouping')
-        grouping(cfg, df, features, 'Test_Group')
+        grouping(cfg, df, features, 'Test_SPA')
         print('Finish Preprocess')
 
 

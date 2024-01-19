@@ -12,17 +12,17 @@ submit_dir : '/data/ephemeral/submit/'
 submit_name : 'saintplusalpha.csv'
 
 # Model
-n_layers : 2      # Multihead Attention Layer의 수
-n_heads : 4       # One Multihead Attention Layer의 Head 수
-d_model : 64      # Embedding Dimension Size 수
-max_len : 1000    # Positional Encoding의 Max Length
-seq_len : 100     # Sequence Length
-n_question : 9454 # assessmentItemID 수 (9454 고정)
-n_test : 1537     # testID 수 (1537 고정)
-n_code : 9        # testCode 수 (9 고정)
-n_prob : 13       # problemID 수 (13 고정)
-n_tag : 912       # KnowledgeTag 수 (912 고정)
-n_answer : 2      # answerCode 수 (2 고정)
+n_layers : 2      # Multihead Attention Layer의 수 (Default : 2)
+n_heads : 2       # One Multihead Attention Layer의 Head 수 (Default : 4)
+d_model : 32      # Embedding Dimension Size 수 (Default : 64)
+max_len : 500     # Positional Encoding의 Max Length (Default : 1000)
+seq_len : 100     # Sequence Length (Default : 100)
+n_question : 9454 # assessmentItemID 수 (Default : 9454)
+n_test : 1537     # testID 수 (Default : 1537)
+n_code : 9        # testCode 수 (Default : 9)
+n_prob : 13       # problemID 수 (Default : 13)
+n_tag : 912       # KnowledgeTag 수 (Default : 912)
+n_answer : 2      # answerCode 수 (Default : 2)
 
 
 # Train
@@ -30,12 +30,12 @@ seed : 42
 device : 'cuda'
 num_workers : 8
 
-dropout : 0.2
+dropout : 0.4       # Default : 0.2
 n_epochs : 100
 patience : 10
-batch_size : 16
-lr : 0.001
-optimizer : 'NAdam' # 'adam', 'AdamW', 'NAdam'
+batch_size : 32     # Default : 64
+lr : 0.01           # Default : 0.001
+optimizer : 'AdamW' # 'Adam', 'AdamW', 'NAdam'
 scheduler : 'plateau'
 warmup_step : 4000
 

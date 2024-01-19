@@ -17,7 +17,7 @@ parameters :
     values : [300, 500, 1000, 2000]
   seq_len :
     values : [50, 100, 200, 300]
-  drop_out :
+  dropout :
     values : [0.1, 0.2, 0.3, 0.4, 0.5]
   lr :
     values : [1e-5, 1e-4, 1e-3, 5e-3, 1e-2]

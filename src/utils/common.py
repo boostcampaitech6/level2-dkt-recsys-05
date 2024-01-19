@@ -17,6 +17,9 @@ def generate_exp_code() -> str:
     random_string = "".join(random.choices(possible_characters, k=6))
 
     base = "exp/"
+    if not os.path.exists(base):
+        os.makedirs(base)
+
     dir_list = os.listdir(base)
     last_exp_seq = 0
 

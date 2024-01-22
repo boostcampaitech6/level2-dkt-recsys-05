@@ -1,22 +1,22 @@
+import numpy as np
 from optuna import Trial
 import pandas as pd
-from sklearn.model_selection import StratifiedKFold
-from xgboost import XGBClassifier
-from xgboost import plot_importance
-from optuna.integration.xgboost import XGBoostPruningCallback
-from optuna.samplers import TPESampler
-from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
-import optuna
-import numpy as np
-import matplotlib.pyplot as plt
-from wandb.xgboost import WandbCallback
-
 from models._main import BoostingBasedModel
 from config import Config
-from utils.common import new_experiment, get_path, update_experiment
+from utils.common import get_path, new_experiment, update_experiment
+from lightgbm import LGBMClassifier, early_stopping
+from lightgbm import plot_importance
+import optuna
+from optuna import Trial, visualization
+from optuna.samplers import TPESampler
+from optuna.integration import LightGBMPruningCallback
+from wandb.lightgbm import wandb_callback
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
 
-
-class XGBoost(BoostingBasedModel):
+class LightGBM(BoostingBasedModel):
     def __init__(
         self,
         config: Config,
@@ -27,7 +27,7 @@ class XGBoost(BoostingBasedModel):
         test_GB: pd.DataFrame,
         exp_code: str,
     ):
-        self.config = config.xgb
+        self.config = config.lgbm
         self.use_columns = config.use_columns
 
         self.X_train = X_train
@@ -53,38 +53,40 @@ class XGBoost(BoostingBasedModel):
 
     def _hpo_optimizer(self, trial: Trial):
         param = {
-            "booster": trial.suggest_categorical("booster", ["gbtree", "dart"]),
-            "max_depth": trial.suggest_int("max_depth", 1, 15),
-            "learning_rate": trial.suggest_categorical(
-                "learning_rate", [1e-3, 0.01, 0.05, 0.1, 0.5]
-            ),
-            "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
-            "gamma": trial.suggest_categorical("gamma", [1e-5, 1e-3, 1, 5, 10]),
-            "colsample_bytree": trial.suggest_categorical(
-                "colsample_bytree", [0.1, 0.5, 1]
-            ),
-            "lambda": trial.suggest_categorical("lambda", [1e-5, 1e-3, 1, 5, 10]),
-            "alpha": trial.suggest_categorical("alpha", [1e-5, 1e-3, 1, 5, 10]),
-            "subsample": trial.suggest_categorical("subsample", [0.6, 0.7, 0.8, 1.0]),
-            "max_delta_step": trial.suggest_categorical(
-                "max_delta_step", [0.1, 0.5, 1, 5, 10]
-            ),
+            'boosting_type' : trial.suggest_categorical('boosting_type', ['gbdt', 'dart']),
+            'num_leaves' : trial.suggest_int('num_leaves', 30, 50),
+            'max_depth' : trial.suggest_int('max_depth', 1, 15),
+            'learning_rate' : trial.suggest_categorical('learning_rate', [1e-5, 1e-3, 0.1, 0.5]),
+            'colsample_bytree' : trial.suggest_categorical('colsample_bytree', [0.1, 0.3, 0.5, 0.7, 1.0]),
+            'subsample' : trial.suggest_categorical('subsample', [0.1, 0.3, 0.5, 0.7, 1.0]),
+            'reg_alpha' : trial.suggest_categorical('reg_alpha', [1e-3, 0.1, 1, 5, 10]),
+            'reg_lambda' : trial.suggest_categorical('reg_lambda', [1e-3, 0.1, 1, 5, 10]),
+            'min_child_weight': trial.suggest_categorical('min_child_weight', [1e-3, 0.1, 1, 5, 10]),
         }
 
-        pruning_callback = XGBoostPruningCallback(trial, "validation_1-" + "auc")
+        pruning_callback = LightGBMPruningCallback(trial, 'auc', valid_name = 'valid_1')
+        callback = early_stopping(stopping_rounds = self.config.early_stopping_rounds)
 
-        xgb_model = XGBClassifier(
+        lgbm_model = LGBMClassifier(
             **param,
-            **self.config.dict(),
+            n_estimators=self.config.n_estimators,
+            objective=self.config.objective,
+            metric=self.config.metric,
+            device_type=self.config.device_type,
+            n_jobs=self.config.n_jobs,
+            random_state=self.config.random_state,
         ).fit(
             self.X_train,
             self.y_train,
             eval_set=[(self.X_train, self.y_train), (self.X_valid, self.y_valid)],
-            verbose=300,
-            callbacks=[pruning_callback],
+            eval_metric='auc',
+            callbacks=[callback, pruning_callback],
         )
 
-        return roc_auc_score(self.y_valid, xgb_model.predict_proba(self.X_valid)[:, 1])
+        return roc_auc_score(self.y_valid, lgbm_model.predict_proba(self.X_valid)[:, 1])
+# Load a model, start the server, and run this example in your terminal
+# Choose between streaming and non-streaming mode by setting the "stream" field
+
 
     def hpo(self):
         study = optuna.create_study(
@@ -102,9 +104,24 @@ class XGBoost(BoostingBasedModel):
         print(
             f"Best trial : score {study.best_trial.value}, \n params = {study.best_trial.params} \n"
         )
-
+        
     def train(self):
         update_experiment(self.exp_code, {"best_params": self.best_params})
+        
+        if self.fold_config.skip:
+            model, proba, _, _, _ = self._train(
+                self.X_train,
+                self.y_train,
+                self.X_valid,
+                self.y_valid,
+                self.test_GB,
+            )
+
+            self.save_feature_importance_plot(model)
+            self.save_model(model)
+            self.save_output(proba)
+        else:
+            update_experiment(self.exp_code, {"best_params": self.best_params})
 
         if self.fold_config.skip:
             model, proba, _, _, _ = self._train(
@@ -173,27 +190,26 @@ class XGBoost(BoostingBasedModel):
             )
 
             self.save_output(proba_df["mean"])
-
+            
+    
     def _train(self, X_train, y_train, X_valid, y_valid, test_GB):
-        pruning_callback = WandbCallback(log_model=True)
-
-        model = XGBClassifier(**self.best_params, **self.config.dict()).fit(
+        pruning_callback = wandb_callback(log_evaluation=True)
+        
+        model = LGBMClassifier(**self.best_params, **self.config.dict()).fit(
             X_train,
             y_train,
             eval_set=[(X_train, y_train), (X_valid, y_valid)],
-            verbose=100,
+            eval_metric='auc',
             callbacks=[pruning_callback],
         )
-
-        proba = model.predict_proba(X_valid)[:, 1]
+        
+        proba = model.predict_proba(test_GB)[:, 1]
         roc_auc = roc_auc_score(y_valid, proba)
         accuracy = accuracy_score(y_valid, np.where(proba >= 0.5, 1, 0))
         logloss = log_loss(y_valid, proba)
-
-        print(
-            f"ROC-AUC Score : {roc_auc:.4f} / Accuracy : {accuracy:.4f} / Logloss : {logloss:.4f}"
-        )
-
+        
+        f"ROC-AUC Score : {roc_auc:.4f} / Accuracy : {accuracy:.4f} / Logloss : {logloss:.4f}"
+        
         update_experiment(
             self.exp_code,
             {
@@ -202,11 +218,11 @@ class XGBoost(BoostingBasedModel):
                 "logloss": logloss,
             },
         )
-
+        
         proba = model.predict_proba(test_GB)[:, 1]
 
         return model, proba, roc_auc, accuracy, logloss
-
+    
     def save_feature_importance_plot(self, model, seq=0):
         _, axes = plt.subplots(nrows=1, ncols=2, figsize=(20, 10))
         plot_importance(model, ax=axes[0], importance_type="gain")

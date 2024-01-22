@@ -1,12 +1,20 @@
 import argparse
+import enum
 from pydantic import BaseModel
 from typing import Optional
 
 import yaml
 
 
+class ModelType(str, enum.Enum):
+    XGBoost = 'XGBoost'
+    LightGBM = 'LightGBM'
+    CatBoost = 'CatBoost'
+
+
 class Config(BaseModel):
     seed = 42
+    model_type: ModelType = ModelType.XGBoost
     hpo: "HPOConfig"
     fold: "FoldConfig"
     data_dir: str = "/data/ephemeral/data/"
@@ -18,6 +26,7 @@ class Config(BaseModel):
 
     # model config
     xgb: Optional["XGBoostConfig"]
+    lgbm: Optional["LightGBMConfig"]
 
     best_params: Optional[dict] = {
         "booster": "dart",
@@ -56,6 +65,17 @@ class XGBoostConfig(BaseModel):
     early_stopping_rounds: int = 100
     random_state: int = 42
     updater: str = "grow_gpu_hist"
+    
+class LightGBMConfig(BaseModel):
+    n_estimators: int = 5000
+    objective: str = "binary"
+    metric: str = "auc"
+    device_type: str = "cpu"
+    gpu_use_dp: bool = True
+    n_jobs: int = -1
+    verbose: int = -1
+    random_state: int = 42
+    early_stopping_rounds: int = 100
 
 
 Config.update_forward_refs()

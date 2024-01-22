@@ -21,6 +21,16 @@ xgb:
   tree_method: hist
   early_stopping_rounds: 10
   random_state: 42
+lgbm:
+  n_estimators: 5000
+  objective: binary
+  metric: auc
+  device_type: gpu
+  gpu_use_dp: True
+  n_jobs: -1
+  verbose: -1
+  random_state: 42
+  early_stopping_rounds: 100
 best_params:
   booster: dart
   max_depth: 13

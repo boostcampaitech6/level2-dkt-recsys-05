@@ -3,8 +3,7 @@ from dataset import get_data
 from utils.wandb import init as init_wandb
 from utils.common import seed_everything, generate_exp_code
 import warnings
-
-from models.xgboost import XGBoost
+from models._main import get_model
 
 warnings.filterwarnings("ignore")
 
@@ -17,15 +16,16 @@ if __name__ == "__main__":
     init_wandb(
         team_name=config.wandb_team,
         project_name=config.wandb_project,
-        run_name=f"xgboost_f{len(config.use_columns)}_{exp_code}",
+        run_name=f"{config.model_type}_f{len(config.use_columns)}_{exp_code}",
         key=config.wandb_key,
     )
 
     seed_everything(config.seed)
 
     X_train, y_train, X_valid, y_valid, test_GB = get_data(config)
-
-    xgb = XGBoost(
+    
+    model = get_model(
+        config.model_type,
         config,
         X_train,
         y_train,
@@ -36,8 +36,8 @@ if __name__ == "__main__":
     )
 
     if not config.hpo.skip:
-        xgb.hpo_start()
+        model.hpo()
 
-    xgb.train_start()
+    model.train()
 
     print(f"{exp_code} Done!")

@@ -117,13 +117,12 @@ class PrepareData:
             _, _, test, merged = self._load_data()
             self._test_set_variables(test_cfg, test)
             test, merged = self._indexing_data(test, base=merged)
-            test = test[0]
 
             merged_node = merged[['userID', 'assessmentItemID']]
             merged_node = torch.LongTensor(merged_node.transpose().values).to(cfg.device)
 
             self.output = {'test_data' : test[seleted_columns],
-                          'merged_data' : merged_node, # for LGCN
+                          'merged_node' : merged_node, # for LGCN
                            'test_cfg' : test_cfg}
 
 

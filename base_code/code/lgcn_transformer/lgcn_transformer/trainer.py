@@ -142,8 +142,8 @@ def inference(cfg, model: nn.Module, prepared, output_dir: str):
     model.eval()
     with torch.no_grad():
         output_list = []
-        for cate_x, cont_x, mask, target in tqdm(test_loader, mininterval=1):
-            output = model(cate_x, cont_x, mask)
+        for data in tqdm(test_loader, mininterval=1):
+            output = model(data)
             output_list.append(output.cpu().detach().numpy())
         
     output_list = np.concatenate(output_list).flatten()

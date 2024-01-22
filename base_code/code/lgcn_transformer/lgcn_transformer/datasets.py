@@ -24,14 +24,11 @@ class LgcnTfDataset(Dataset):
 
         self.max_seq_len = cfg.seq_len
         self.cate_cols = cfg.cate_cols
-        self.cate_cols.remove('userID')
-        self.cate_cols.remove('assessmentItemID')
         self.cont_cols = cfg.cont_cols
         
+        self.nodes = df[['userID', 'assessmentItemID']].values
         self.cate_features = df[self.cate_cols].values
         self.cont_features = df[self.cont_cols].values
-
-        self.node = df[['userID', 'assessmentItemID']].values
 
         self.device = cfg.device
 
@@ -49,24 +46,25 @@ class LgcnTfDataset(Dataset):
         seq_len = end_index - start_index
 
         with torch.device(self.device):
-            # 0으로 채워진 output tensor 제작                  
+            # 0으로 채워진 output tensor 제작    
+            node = torch.zeros(self.max_seq_len, 2, dtype=torch.long)              
             cate_feature = torch.zeros(self.max_seq_len, len(self.cate_cols), dtype=torch.long)
             cont_feature = torch.zeros(self.max_seq_len, len(self.cont_cols), dtype=torch.float)
-            mask = torch.bool(self.max_seq_len)
+            mask = torch.BoolTensor(self.max_seq_len)
         
             # tensor에 값 채워넣기
-            node = torch.int16(self.node[start_index:end_index, 0]) # 16bit signed integer
-            cate_feature[-seq_len:] = torch.int16(self.cate_features[start_index:end_index]) # 16bit signed integer
-            cont_feature[-seq_len:] = torch.float16(self.cont_features[start_index:end_index]) # 16bit float
+            node[-seq_len:] = torch.ShortTensor(self.nodes[start_index:end_index]) # 16bit signed integer
+            cate_feature[-seq_len:] = torch.ShortTensor(self.cate_features[start_index:end_index]) # 16bit signed integer
+            cont_feature[-seq_len:] = torch.HalfTensor(self.cont_features[start_index:end_index]) # 16bit float
             mask[:-seq_len] = True
             mask[-seq_len:] = False        
                 
             # target은 꼭 cont_feature의 맨 뒤에 놓자
-            target = torch.float32([cont_feature[-1, -1]])
+            target = torch.FloatTensor([cont_feature[-1, -1]])
 
         # data leakage가 발생할 수 있으므로 0으로 모두 채운다
         cont_feature[-1, -1] = 0
-        
+
         return {'node' : 
                 node.to(self.device), 
                 'cate_feature' : 
@@ -87,10 +85,13 @@ class PrepareData:
     def __init__(self, cfg):
         self.cfg = cfg
 
+        seleted_columns = cfg.cate_cols + cfg.cont_cols
+
+        cfg.cate_cols.remove('userID')
+        cfg.cate_cols.remove('assessmentItemID')
+
         cfg.cate_col_size = len(cfg.cate_cols)
         cfg.cont_col_size = len(cfg.cont_cols)
-
-        seleted_columns = [column for column in cfg.cate_cols] + [column for column in cfg.cont_cols]
 
         if cfg.train:
             train_cfg = copy.deepcopy(cfg)
@@ -100,9 +101,14 @@ class PrepareData:
 
             train, valid, _, merged = self._load_data()
             self._train_set_variables(train_cfg, valid_cfg, train, valid)
-            train, valid = self._indexing_data(train, valid, base=merged)
+            train, valid, merged = self._indexing_data(train, valid, base=merged)
+
+            merged_node = merged[['userID', 'assessmentItemID']]
+            merged_node = torch.LongTensor(merged_node.transpose().values).to(cfg.device)
+
             self.output = {'train_data' : train[seleted_columns], 
                        'valid_data' : valid[seleted_columns],
+                       'merged_node' : merged_node, # for LGCN
                        'train_cfg' : train_cfg,
                        'valid_cfg' : valid_cfg}
 
@@ -110,9 +116,14 @@ class PrepareData:
             test_cfg = copy.deepcopy(cfg)
             _, _, test, merged = self._load_data()
             self._test_set_variables(test_cfg, test)
-            test = self._indexing_data(test, base=merged)
+            test, merged = self._indexing_data(test, base=merged)
             test = test[0]
+
+            merged_node = merged[['userID', 'assessmentItemID']]
+            merged_node = torch.LongTensor(merged_node.transpose().values).to(cfg.device)
+
             self.output = {'test_data' : test[seleted_columns],
+                          'merged_data' : merged_node, # for LGCN
                            'test_cfg' : test_cfg}
 
 
@@ -135,15 +146,13 @@ class PrepareData:
         cate_cols = self.cfg.cate_cols
 
         # userID, assessmentItemID는 LGCN의 node로 입력받기 위해 제외한다
-        cate_cols.remove('userID')
-        cate_cols.remove('assessmentItemID')
 
         df_mod = [pd.DataFrame() for _ in datas]
 
         # nan 값이 0이므로 위해 offset은 1에서 출발한다
         cate_offset = 1
 
-        for col in tqdm(cate_cols):
+        for col in cate_cols:
 
             # 각 column마다 mapper를 만든다
             cate2idx = {}
@@ -168,38 +177,33 @@ class PrepareData:
         
         self.cfg.total_cate_size = cate_offset
         
-
         # LGCN을 위한 userID, assessmentItemID의 index를 구한다
         node_cols = ["userID", 'assessmentItemID']
-        df_mod = [pd.DataFrame() for _ in datas]
 
-        # nan 값이 0이므로 위해 offset은 1에서 출발한다
         node_offset = 1
         node2idx = {}
 
-        for col in tqdm(node_cols):
+        for col in node_cols:
             for v in kwargs['base'][col].unique():
-
-                # np.nan != np.nan은 True가 나온다
-                # nan 및 None은 넘기는 코드
                 if (v != v) | (v == None):
                     continue 
 
-                # nan을 고려하여 offset을 추가한다
                 node2idx[v] = len(node2idx) + node_offset
 
-            # mapping
             for i, data in enumerate(datas):
                 df_mod[i][col] = data[col].map(node2idx).astype(int)
-        
-        self.cfg.node_size = len(node2idx)
-        
+
+        merged = pd.DataFrame()
+        for col in ['userID', 'assessmentItemID']:
+            merged[col] = kwargs['base'][col].map(node2idx).astype(int)
+
+        self.cfg.node_size = len(node2idx) + 1
 
         # continuous feature도 합친다
         for i, data in enumerate(datas):
             df_mod[i][self.cfg.cont_cols] = data[self.cfg.cont_cols]
 
-        return df_mod
+        return *df_mod , merged
     
 
     def _split_data(self):
@@ -245,6 +249,7 @@ class PrepareData:
         valid_cfg.user_id_index_list = [(user_id, index)
                                 for user_id, indexs in indexes_by_valid_users.items()
                                 for index in indexs]
+
 
     def _test_set_variables(self, cfg, test):
         indexes_by_users = test.reset_index().groupby('userID')['index'].agg(list)

@@ -4,10 +4,10 @@ import argparse
 import torch
 import wandb
 
-from last_query_transformer.args import parse_args
-from last_query_transformer.datasets import TransformerDataset, PrepareData
-from last_query_transformer import trainer
-from last_query_transformer.utils import get_logger, set_seeds, logging_conf, CFG
+from lgcn_transformer.args import parse_args
+from lgcn_transformer.datasets import PrepareData
+from lgcn_transformer import trainer
+from lgcn_transformer.utils import get_logger, set_seeds, logging_conf, CFG
 
 
 logger = get_logger(logging_conf)
@@ -24,7 +24,7 @@ def main(cfg: CFG):
     prepared = PrepareData(cfg).get_data()
 
     logger.info("Building Model ...")
-    model = trainer.build(cfg)
+    model = trainer.build(prepared['merged_node'], cfg)
     
     logger.info("Start Training ...")
     trainer.run(model=model, prepared=prepared, cfg=cfg)

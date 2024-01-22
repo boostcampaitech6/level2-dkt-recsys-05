@@ -26,7 +26,7 @@ class TransformerModel(nn.Module):
         # combination
         self.comb_proj = nn.Sequential(
             nn.ReLU(),
-            nn.Linear(cfg.hidden_size*2, cfg.hidden_size),
+            nn.Linear(cfg.hidden_size*4, cfg.hidden_size),
             nn.LayerNorm(cfg.hidden_size),
         )
         
@@ -118,19 +118,24 @@ class LSTM(nn.Module):
     
 
 class CustomModel(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, merged_node, cfg):
         super(CustomModel, self).__init__()
-        self.LGCN = LightGCN(num_nodes=cfg.node_size, embedding_dim=cfg.hidden_size, num_layers=cfg.hop_size)
+        self.merged_node = merged_node
+        self.LGCN = LightGCN(num_nodes=cfg.node_size, embedding_dim=cfg.hidden_size, num_layers=cfg.hop).to(cfg.device)
+
+        self.node_embedding = self.LGCN.get_embedding(self.merged_node)
+
         self.transformer = TransformerModel(cfg)
+
         self.lstm = LSTM(cfg)
 
     def forward(self, data):
-        node_emb = self.LGCN.get_embedding(data['node'])
+        node = self.node_embedding[data['node']]
+        node = node.view(node.size(0), node.size(1), -1)
 
-        cate_x = data["cate_feature"]
-        cont_x = data["cont_feature"]
-        mask = data["mask"]
-
-        transformer_out = self.transformer(node_emb, cate_x, cont_x, mask)
+        transformer_out = self.transformer(node, data["cate_feature"], data["cont_feature"], data["mask"])
         output = self.lstm(transformer_out)
         return output
+    
+    def update_embedding(self):
+        self.node_embedding = self.LGCN.get_embedding(self.merged_node)

@@ -84,8 +84,6 @@ class LightGBM(BoostingBasedModel):
         )
 
         return roc_auc_score(self.y_valid, lgbm_model.predict_proba(self.X_valid)[:, 1])
-# Load a model, start the server, and run this example in your terminal
-# Choose between streaming and non-streaming mode by setting the "stream" field
 
 
     def hpo(self):

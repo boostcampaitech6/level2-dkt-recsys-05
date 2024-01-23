@@ -5,16 +5,16 @@
 "model_name" : "best_model.pt"
 "output_dir" : "./outputs/"
 
-"batch_size" : 256
+"batch_size" : 1011
 "dropout" : 0.2
 "hidden_size" : 128
-"emb_size" : 128
+"emb_size" : 107
 "n_layers" : 1
-"n_head" : 8
-"seq_len" : 256
+"n_head" : 4
+"seq_len" : 157
 "target_size" : 1
-"n_epochs" : 5 
-"lr" : 0.001
+"n_epochs" : 10
+"lr" : 0.0008
 "hop" : 2
 
 "cate_cols" :

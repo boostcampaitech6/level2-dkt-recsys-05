@@ -9,25 +9,31 @@ class TransformerModel(nn.Module):
         super(TransformerModel, self).__init__()
         self.seq_len = cfg.seq_len
 
+        total_col_size = cfg.cate_col_size + cfg.cont_col_size
+        total_col_hidden_size = cfg.hidden_size * 2
+
+        cate_col_hidden_size = int(cfg.cate_col_size / total_col_size * total_col_hidden_size)
+        cont_col_hidden_size = total_col_hidden_size - cate_col_hidden_size
+
         # category
         self.cate_emb = nn.Embedding(cfg.total_cate_size, cfg.emb_size, padding_idx=0)
         self.cate_proj = nn.Sequential(
-            nn.Linear(cfg.emb_size * cfg.cate_col_size, cfg.hidden_size),
-            nn.LayerNorm(cfg.hidden_size),
+            nn.Linear(cfg.emb_size * cfg.cate_col_size, cate_col_hidden_size),
+            nn.LayerNorm(cate_col_hidden_size),
         )
 
         # continuous
         self.cont_bn = nn.BatchNorm1d(cfg.cont_col_size)
         self.cont_emb = nn.Sequential(
-            nn.Linear(cfg.cont_col_size, cfg.hidden_size),
-            nn.LayerNorm(cfg.hidden_size),
+            nn.Linear(cfg.cont_col_size, cont_col_hidden_size),
+            nn.LayerNorm(cont_col_hidden_size),
         )
 
         # combination
         self.comb_proj = nn.Sequential(
             nn.ReLU(),
             nn.Linear(cfg.hidden_size*4, cfg.hidden_size),
-            nn.LayerNorm(cfg.hidden_size),
+            nn.LayerNorm(cfg.hidden_size)
         )
         
         self.encoder = MultiHeadAttentionForLSTM(cfg)        
@@ -129,6 +135,7 @@ class CustomModel(nn.Module):
 
         self.lstm = LSTM(cfg)
 
+
     def forward(self, data):
         node = self.node_embedding[data['node']]
         node = node.view(node.size(0), node.size(1), -1)
@@ -137,5 +144,6 @@ class CustomModel(nn.Module):
         output = self.lstm(transformer_out)
         return output
     
+
     def update_embedding(self):
         self.node_embedding = self.LGCN.get_embedding(self.merged_node)

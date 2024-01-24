@@ -1,5 +1,9 @@
 # Baseline LightGCN을 본따서 Transformer를 만들었습니다.
 
+
+# 학습데이터는 feature engineering 된 데이터가 필요합니다
+# data_FE.py 파일을 실행시켜서 데이터를 전처리해주세요
+
 ## Setup
 ```potery install
 python train.py --data_dir ../data/

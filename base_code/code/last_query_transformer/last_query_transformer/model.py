@@ -158,7 +158,7 @@ class LSTM(nn.Module):
         out = out.contiguous()
         out = self.lin_O(out)
         out = out.squeeze(-1)
-        out = torch.sigmoid(out)
+        # out = torch.sigmoid(out)
 
         return out
     

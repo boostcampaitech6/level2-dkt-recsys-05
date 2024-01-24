@@ -1,5 +1,5 @@
 program: train.py
-method: random
+method: bayes
 project: "dkt_pkw_sweep"
 metric:
   name: valid_auc_epoch
@@ -10,7 +10,7 @@ parameters:
     min: 128
     max: 1024
   hidden_size :
-    values: [64, 128, 256]
+    values: [32, 64, 128, 256, 512]
   emb_size :
     distribution: int_uniform
     min: 64
@@ -29,7 +29,7 @@ parameters:
     min: 0.0
     max: 0.5
   lr:
-    min: 0.0001
-    max: 0.02
+    min: 0.00001
+    max: 0.005
   data_dir:
     value: '../../../../data_FE/'

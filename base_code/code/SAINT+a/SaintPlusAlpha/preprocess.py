@@ -1,38 +1,34 @@
 import numpy as np
 import pandas as pd
-import time
+from sklearn.preprocessing import StandardScaler, RobustScaler
 import pickle
-from datetime import datetime
-from collections import defaultdict
 from .utils import load_config
 
-# 개인별 문제 푸는데 걸린 시간
-def Lag_Time(df) :
+# 개인별 테스트를 푸는데 걸린 시간
+def LagTime(df) :
+    df['Timestamp'] = pd.to_datetime(df['Timestamp'])
     time_dict = {}
-    lag_time = np.zeros(len(df), dtype = np.float32)
-    for idx, col in enumerate(df[['userID', 'Timestamp', 'testID']].values) :
-        col[1] = time.mktime(datetime.strptime(col[1],'%Y-%m-%d %H:%M:%S').timetuple())
-        
-        # 처음 문제 푸는 유저
-        if col[0] not in time_dict :
-            lag_time[idx] = 0
-            time_dict[col[0]] = [col[1], col[2], 0] # last_timestamp, last_testID, last_LagTime
-        
-        else :
-            
-            # 이 시험지를 풀어봤다면
-            if col[2] == time_dict[col[0]][1] :
-                lag_time[idx] = time_dict[col[0]][2]
-            
-            # 이 시험지를 푼 적 없다면
-            else :
-                lag_time[idx] = col[1] - time_dict[col[0]][0]
-                time_dict[col[0]][0] = col[1]
-                time_dict[col[0]][1] = col[2]
-                time_dict[col[0]][2] = lag_time[idx]
+    lag_time = np.zeros(len(df))
+    for idx, (user, time, test) in enumerate(df[['userID', 'Timestamp', 'testId']].values) :
 
-    df['lag_time'] = lag_time/1000/60 # 분으로 출력
-    df['lag_time'] = df['lag_time'].clip(0, 1440) # 1440분(하루) 이상이면 1440으로 변환
+        if user not in time_dict :
+            # 문제를 처음 푸는 유저
+            lag_time[idx] = 0
+            time_dict[user] = [time, test, 0] # 마지막 Timestamp, 마지막 testID, 마지막 LagTime(= 0)
+
+        else :
+            # 해당 시험지를 풀었다면
+            if test == time_dict[user][1] :
+                lag_time[idx] = time_dict[user][2] # 마지막 LagTime 입력
+
+            # 처음 보는 시험지라면
+            else :
+                lag_time[idx] = (time - time_dict[user][0]).total_seconds()
+                time_dict[user][0] = time
+                time_dict[user][1] = test
+                time_dict[user][2] = lag_time[idx]
+    df['lag_time'] = lag_time / 3600 # 시간 단위로 변환
+    # df['lag_time'] = df['lag_time'].clip(0, 24) # 24시간 이상이면 24로 변환
     return df['lag_time']
 
 # 문제 푸는데 걸린 시간
@@ -93,14 +89,14 @@ def indexing(df, col) :
     return df
 
 def Feature_Engineering(df) :
-    print('Start Feature Engineering')
     df.index = df.index.astype('uint32')
     
+    # Feature 생성
     df['testID'] = df['assessmentItemID'].apply(lambda x : x[1:7])
     df['testCode'] = df['assessmentItemID'].apply(lambda x : x[2:3]).astype('int8')
     df['problemID'] = df['assessmentItemID'].apply(lambda x : x[7:]).astype('int8')
 
-    df['lag_time'] = Lag_Time(df)
+    df['lag_time'] = LagTime(df)
     df['elapsed_time'] = ElapsedTime(df)
     df['item_acc'] = Item_Acc(df)
     df['user_acc'] = User_Acc(df)
@@ -108,12 +104,12 @@ def Feature_Engineering(df) :
     df['prob_acc'] = problemID_Acc(df)
     df['tag_acc'] = Tag_Acc(df)
     
+    # Indexing
     df = indexing(df, 'assessmentItemID')
     df = indexing(df, 'testID')
     df = indexing(df, 'KnowledgeTag')
     
     df['answerCode'] += 1 # Wrong : 1 / Correct : 2
-    print('Finish Feature Engineering')
     return df
 
 def grouping(cfg, df, features, save_name) :
@@ -136,44 +132,49 @@ def grouping(cfg, df, features, save_name) :
     with open(cfg['data_dir'] + f'{save_name}.pkl.zip', 'wb') as p :
         pickle.dump(df_group, p)
 
-def Preprocess(cfg, df, is_train = True) :
+def Preprocess(cfg, total, test, scaling = False) :
     print('Start Preprocess')
-    df = Feature_Engineering(df)
+    total = Feature_Engineering(total)
+    test  = Feature_Engineering(test)
     features = ['userID', 'assessmentItemID', 'testID', 'testCode', 'problemID', 'KnowledgeTag',
                 'lag_time', 'elapsed_time', 'item_acc', 'user_acc',
                 'code_acc', 'prob_acc', 'tag_acc', 'answerCode']
     
-    # Train / Valid Data
-    if is_train :
-        # valid_indices = set(df[df['answerCode'] != -1].index).intersection(set(df.reset_index().groupby('userID', as_index = False).last().set_index('index').index))
-        # train_df = df.loc[~df.index.isin(valid_indices)]
-        # valid_df = df.loc[df.index.isin(valid_indices)]
-        
-        valid_size = 0.99
-        train_df = df[:int(df.shape[0] * valid_size)]
-        valid_df = df[int(df.shape[0] * valid_size):]
-        print(f'Train : {train_df.shape}, Valid : {valid_df.shape}')
-        print('=' * 50)
+    if scaling :
+        time_col = ['lag_time', 'elapsed_time']
+        total_time, test_time = total[time_col], test[time_col]
 
-        print('Start Train and Valid Data Grouping')
-        grouping(cfg, train_df, features, 'Train_SPA')
-        grouping(cfg, valid_df, features, 'Valid_SPA')
-        print('Finish Preprocess')
+        rb_scaler = RobustScaler()
+        total_time_scaled = pd.DataFrame(rb_scaler.fit_transform(total_time), columns = time_col)
+        test_time_scaled = pd.DataFrame(rb_scaler.transform(test_time), columns = time_col)
+
+        total_df = pd.concat([total.drop(columns = time_col), total_time_scaled], axis = 1)
+        test_df = pd.concat([test.drop(columns = time_col), test_time_scaled], axis = 1)
     
-    # Test Data
-    else :
-        print('Start Test Data Grouping')
-        grouping(cfg, df, features, 'Test_SPA')
-        print('Finish Preprocess')
+    else : 
+        total_df = total.copy()
+        test_df = test.copy()
+    
+    # valid_indices = set(df[df['answerCode'] != -1].index).intersection(set(df.reset_index().groupby('userID', as_index = False).last().set_index('index').index))
+    # train_df = df.loc[~df.index.isin(valid_indices)]
+    # valid_df = df.loc[df.index.isin(valid_indices)]
+    
+    valid_size = 0.99
+    train_df = total_df[:int(total_df.shape[0] * valid_size)]
+    valid_df = total_df[int(total_df.shape[0] * valid_size):]
+    print(f'Train : {train_df.shape}, Valid : {valid_df.shape}')
+    print('=' * 50)
+
+    print('Start Train and Valid Data Grouping')
+    grouping(cfg, train_df, features, 'Train_SPA')
+    grouping(cfg, valid_df, features, 'Valid_SPA')
+    grouping(cfg, test_df, features, 'Test_SPA')
+    print('Finish Preprocess')
 
 
 if __name__ == '__main__' :
     cfg = load_config('./config.yaml')
     
-    total_data = cfg['data_dir'] + cfg['total_data_name']
-    total_df = pd.read_csv(total_data)
-    Preprocess(cfg, total_df, True)
-    
-    test_data = cfg['data_dir'] + cfg['test_data_name']
-    test_df = pd.read_csv(test_data)
-    Preprocess(cfg, test_df, False)
+    total_df = pd.read_csv(cfg['data_dir'] + cfg['total_data_name'])
+    test_df = pd.read_csv(cfg['data_dir'] + cfg['test_data_name'])
+    Preprocess(cfg, total_df, test_df, scaling = cfg['scale'])

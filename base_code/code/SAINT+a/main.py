@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 import os
 import wandb
-import torch
-import datetime
 from SaintPlusAlpha.utils import load_config, get_logger, seed_everything, logging_conf
 from SaintPlusAlpha.preprocess import Preprocess
 from SaintPlusAlpha.train import train
@@ -12,9 +10,6 @@ from SaintPlusAlpha.inference import inference
 logger = get_logger(logging_conf)
 
 def main(cfg) :
-    
-    if torch.cuda.is_available() :
-        torch.cuda.init()
     
     wandb.login(key = cfg['key'])
     wandb.init(project = cfg['project'], config = cfg)
@@ -25,13 +20,9 @@ def main(cfg) :
         
         logger.info('Preparing Data ...')
         
-        total_data = cfg['data_dir'] + cfg['total_data_name']
-        total_df = pd.read_csv(total_data)
-        Preprocess(cfg, total_df, True)
-        
-        test_data = cfg['data_dir'] + cfg['test_data_name']
-        test_df = pd.read_csv(test_data)
-        Preprocess(cfg, test_df, False)
+        total_df = pd.read_csv(cfg['data_dir'] + cfg['total_data_name'])
+        test_df = pd.read_csv(cfg['data_dir'] + cfg['test_data_name'])
+        Preprocess(cfg, total_df, test_df, scaling = cfg['scale'])
     
     else :
         logger.info('Successed Load Data')

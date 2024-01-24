@@ -15,17 +15,12 @@ def seed_everything(seed : int = 42) :
     os.environ['PYTHONHASHSEED'] = str(seed)
     os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
-    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-    os.environ['TORCH_USE_CUDA_DSA'] = '1'
-    os.environ['TORCH_DSA_CUDBG'] = '1'
     
 def load_config(config_file) :
     import yaml
     
     with open(config_file) as file :
         config = yaml.safe_load(file)
-
     return config
 
 

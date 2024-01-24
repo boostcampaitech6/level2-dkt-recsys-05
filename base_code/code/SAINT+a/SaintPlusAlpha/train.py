@@ -21,7 +21,7 @@ def save_model(cfg, model) :
 
 def train(cfg) :
     
-    wandb.run.name = cfg['runname'] + str(datetime.datetime.now().strftime('%y%m%d_%H%M%S'))
+    wandb.run.name = cfg['runname'] + '_' + str(datetime.datetime.now().strftime('%y%m%d_%H%M%S'))
     wandb.run.save()
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -81,7 +81,7 @@ def train(cfg) :
     best_auc = 0
     count = 0
     for epoch in range(n_epochs) :
-        print(f'============ Epoch {epoch + 1} Training ============')
+        print(f'============ Epoch {epoch + 1} Training   ============')
         model.train()
         t_s = time.time()
         train_loss = []

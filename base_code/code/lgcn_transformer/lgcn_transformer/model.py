@@ -118,7 +118,7 @@ class LSTM(nn.Module):
         out = out.contiguous()
         out = self.lin_O(out)
         out = out.squeeze(-1)
-        out = torch.sigmoid(out)
+        # out = torch.sigmoid(out)
 
         return out
     
@@ -129,15 +129,14 @@ class CustomModel(nn.Module):
         self.merged_node = merged_node
         self.LGCN = LightGCN(num_nodes=cfg.node_size, embedding_dim=cfg.hidden_size, num_layers=cfg.hop).to(cfg.device)
 
-        self.node_embedding = self.LGCN.get_embedding(self.merged_node)
-
         self.transformer = TransformerModel(cfg)
 
         self.lstm = LSTM(cfg)
 
 
     def forward(self, data):
-        node = self.node_embedding[data['node']]
+        node_embedding = self.LGCN.get_embedding(self.merged_node)
+        node = node_embedding[data['node']]
         node = node.view(node.size(0), node.size(1), -1)
 
         transformer_out = self.transformer(node, data["cate_feature"], data["cont_feature"], data["mask"])
@@ -146,4 +145,5 @@ class CustomModel(nn.Module):
     
 
     def update_embedding(self):
-        self.node_embedding = self.LGCN.get_embedding(self.merged_node)
+        node_embedding = self.LGCN.get_embedding(self.merged_node)
+        print(node_embedding[1028])

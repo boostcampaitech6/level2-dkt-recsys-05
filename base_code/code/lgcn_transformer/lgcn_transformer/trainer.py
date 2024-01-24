@@ -29,6 +29,7 @@ def build(merged_node, cfg):
         model.load_state_dict(model_state["model"])
 
     model = model.to(cfg.device)
+
     return model
 
 
@@ -50,7 +51,7 @@ def run(model: nn.Module, prepared, cfg):
     n_epochs=cfg.n_epochs
     learning_rate=cfg.lr
     optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
-    loss_fun = nn.BCELoss()
+    loss_fun = nn.BCEWithLogitsLoss()
 
     logger.info(f"Training Started : n_epochs={n_epochs}")
     best_auc, best_epoch = 0, -1
@@ -94,7 +95,6 @@ def train(model: nn.Module, train_loader, optimizer: torch.optim.Optimizer, loss
         loss = loss_fun(output, data['target'])
         loss.backward()
         optimizer.step()
-        model.update_embedding()
 
         total_loss += loss.item()
         target_list.append(data['target'].detach().cpu())

@@ -55,7 +55,7 @@ class FeatureEngineering :
         '''
         시험지의 대분류 (`assessmentItemID`의 4~6번째 자리)
         '''
-        testNum = df['assessmentItemID'].apply(lambda x : x[4:7]).astype('int16')
+        testNum = df['assessmentItemID'].apply(lambda x : x[4:7]).astype('int32')
         return testNum.values
 
     def Feature_problemID(self, df) :
@@ -73,14 +73,30 @@ class FeatureEngineering :
         problemID_Norm = (problemID - min(problemID)) / (max(problemID) - min(problemID))
         return problemID_Norm.values
 
+    def Feature_Total_Problem(self, df) :
+        '''
+        시험지 별 문항의 총 개수
+        '''
+        df['testID'] = self.Feature_testID(df)
+        df['problemID'] = self.Feature_problemID(df)
+        total_problem = df['testID'].map(df.groupby('testID')['problemID'].max().to_dict()).astype('int8')
+        return total_problem.values
+
     ### Timestamp 관련 변수 생성
     
     def Feature_year(self, df) :
         '''
         문제를 푼 날짜 정보 중 년
         '''
-        year = df['Timestamp'].dt.year.astype('int16')
+        year = df['Timestamp'].dt.year.astype('int32')
         return year.values
+    
+    def Feature_quarter(self, df) :
+        '''
+        문제를 푼 날짜 정보 중 분기
+        '''
+        quarter = df['Timestamp'].dt.quarter.astype('int8')
+        return quarter.values
 
     def Feature_month(self, df) :
         '''
@@ -118,14 +134,40 @@ class FeatureEngineering :
         weekday = np.where(dow >= 5, 0, 1).astype('int8')
         return weekday
 
+    def Feature_LagTime(self, df) :
+        time_dict = {}
+        lag_time = np.zeros(len(df), dtype = np.float32)
+        for idx, (user, time, test) in enumerate(df[['userID', 'Timestamp', 'testID']].values) :
+
+            if user not in time_dict :
+                # 문제를 처음 푸는 유저
+                lag_time[idx] = 0
+                time_dict[user] = [time, test, 0] # 마지막 Timestamp, 마지막 testID, 마지막 LagTime(= 0)
+
+            else :
+                # 해당 시험지를 풀었다면
+                if test == time_dict[user][1] :
+                    lag_time[idx] = time_dict[user][2] # 마지막 LagTime 입력
+
+                # 처음 보는 시험지라면
+                else :
+                    lag_time[idx] = (time - time_dict[user][0]).total_seconds()
+                    time_dict[user][0] = time
+                    time_dict[user][1] = test
+                    time_dict[user][2] = lag_time[idx]
+        LagTime = lag_time / 1000 / 60 # 분 단위로 변환
+        LagTime = LagTime.clip(0, 1440)
+        return LagTime
+    
     def Feature_ElapsedTime(self, df) :
         '''
         유저가 문제를 푸는데 걸린 시간
-        (1200초 이상 결측치 처리 후 문제 번호(problemID) 별 ElapsedTime의 평균값으로 대체)
+        (3600초 이상 결측치 처리 후 문제 번호(problemID) 별 ElapsedTime의 평균값으로 대체)
         '''
         df['testID'] = self.Feature_testID(df)
-        ElaspedTime = df.groupby(['userID', 'testID'], as_index = False)['Timestamp'].diff().shift(-1).dt.total_seconds()
-        ElaspedTime = np.where(ElaspedTime > 1200, np.nan, ElaspedTime)
+        ElaspedTime = df.groupby(['userID', 'testID'], as_index = False)['Timestamp'].diff().shift(0).dt.total_seconds() # shift(-1)
+        ElaspedTime = np.nan_to_num(ElaspedTime, nan = 0) # 유저별 첫번째 문항의 풀이 시간 -> 0
+        ElaspedTime = np.where(ElaspedTime > 3600, np.nan, ElaspedTime) # 1시간 이상 결측치 처리
         
         df['problemID'] = self.Feature_problemID(df)
         df['ElaspedTime'] = ElaspedTime
@@ -260,14 +302,14 @@ class FeatureEngineering :
         '''
         유저 별 정답을 맞힌 횟수 (시간 순으로 누적해서 계산)
         '''
-        User_Sum = df.groupby('userID')['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int16')
+        User_Sum = df.groupby('userID')['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int32')
         return User_Sum.values
 
     def Feature_User_Count(self, df) :
         '''
         유저 별 문제를 푼 횟수 (시간 순으로 누적해서 계산)
         '''
-        User_Count = df.groupby('userID')['answerCode'].cumcount().astype('int16')
+        User_Count = df.groupby('userID')['answerCode'].cumcount().astype('int32')
         return User_Count.values
     
     def Feature_User_Acc(self, df) :
@@ -282,14 +324,14 @@ class FeatureEngineering :
         '''
         유저의 `assessmentItemID` 별 정답을 맞힌 횟수 (시간 순으로 누적해서 계산)
         '''
-        User_Item_Sum = df.groupby(['userID', 'assessmentItemID'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int16')
+        User_Item_Sum = df.groupby(['userID', 'assessmentItemID'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int32')
         return User_Item_Sum.values
 
     def Feature_User_Item_Count(self, df) :
         '''
         유저의 `assessmentItemID` 별 문제를 푼 횟수 (시간 순으로 누적해서 계산)
         '''
-        User_Item_Count = df.groupby(['userID', 'assessmentItemID'])['answerCode'].cumcount().astype('int16')
+        User_Item_Count = df.groupby(['userID', 'assessmentItemID'])['answerCode'].cumcount().astype('int32')
         return User_Item_Count.values
     
     def Feature_User_Item_Acc(self, df) :
@@ -305,7 +347,7 @@ class FeatureEngineering :
         유저의 `testID` 별 정답을 맞힌 횟수 (시간 순으로 누적해서 계산)
         '''
         df['testID'] = self.Feature_testID(df)
-        User_testID_Sum = df.groupby(['userID', 'testID'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int16')
+        User_testID_Sum = df.groupby(['userID', 'testID'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int32')
         return User_testID_Sum.values
 
     def Feature_User_testID_Count(self, df) :
@@ -313,7 +355,7 @@ class FeatureEngineering :
         유저의 `testID` 별 문제를 푼 횟수 (시간 순으로 누적해서 계산)
         '''
         df['testID'] = self.Feature_testID(df)
-        User_testID_Count = df.groupby(['userID', 'testID'])['answerCode'].cumcount().astype('int16')
+        User_testID_Count = df.groupby(['userID', 'testID'])['answerCode'].cumcount().astype('int32')
         return User_testID_Count.values
     
     def Feature_User_testID_Acc(self, df) :
@@ -329,7 +371,7 @@ class FeatureEngineering :
         유저의 `testCode` 별 정답을 맞힌 횟수 (시간 순으로 누적해서 계산)
         '''
         df['testCode'] = self.Feature_testCode(df)
-        User_testCode_Sum = df.groupby(['userID', 'testCode'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int16')
+        User_testCode_Sum = df.groupby(['userID', 'testCode'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int32')
         return User_testCode_Sum.values
 
     def Feature_User_testCode_Count(self, df) :
@@ -337,7 +379,7 @@ class FeatureEngineering :
         유저의 `testCode` 별 문제를 푼 횟수 (시간 순으로 누적해서 계산)
         '''
         df['testCode'] = self.Feature_testCode(df)
-        User_testCode_Count = df.groupby(['userID', 'testCode'])['answerCode'].cumcount().astype('int16')
+        User_testCode_Count = df.groupby(['userID', 'testCode'])['answerCode'].cumcount().astype('int32')
         return User_testCode_Count.values
     
     def Feature_User_testCode_Acc(self, df) :
@@ -353,7 +395,7 @@ class FeatureEngineering :
         유저의 `testNum` 별 정답을 맞힌 횟수 (시간 순으로 누적해서 계산)
         '''
         df['testNum'] = self.Feature_testNum(df)
-        User_testNum_Sum = df.groupby(['userID', 'testNum'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int16')
+        User_testNum_Sum = df.groupby(['userID', 'testNum'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int32')
         return User_testNum_Sum.values
 
     def Feature_User_testNum_Count(self, df) :
@@ -361,7 +403,7 @@ class FeatureEngineering :
         유저의 `testNum` 별 문제를 푼 횟수 (시간 순으로 누적해서 계산)
         '''
         df['testNum'] = self.Feature_testNum(df)
-        User_testNum_Count = df.groupby(['userID', 'testNum'])['answerCode'].cumcount().astype('int16')
+        User_testNum_Count = df.groupby(['userID', 'testNum'])['answerCode'].cumcount().astype('int32')
         return User_testNum_Count.values
     
     def Feature_User_testNum_Acc(self, df) :
@@ -377,7 +419,7 @@ class FeatureEngineering :
         유저의 `problemID` 별 정답을 맞힌 횟수 (시간 순으로 누적해서 계산)
         '''
         df['problemID'] = self.Feature_problemID(df)
-        User_problemID_Sum = df.groupby(['userID', 'problemID'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int16')
+        User_problemID_Sum = df.groupby(['userID', 'problemID'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int32')
         return User_problemID_Sum.values
 
     def Feature_User_problemID_Count(self, df) :
@@ -385,7 +427,7 @@ class FeatureEngineering :
         유저의 `problemID` 별 문제를 푼 횟수 (시간 순으로 누적해서 계산)
         '''
         df['problemID'] = self.Feature_problemID(df)
-        User_problemID_Count = df.groupby(['userID', 'problemID'])['answerCode'].cumcount().astype('int16')
+        User_problemID_Count = df.groupby(['userID', 'problemID'])['answerCode'].cumcount().astype('int32')
         return User_problemID_Count.values
     
     def Feature_User_problemID_Acc(self, df) :
@@ -400,14 +442,14 @@ class FeatureEngineering :
         '''
         유저의 `KnowledgeTag` 별 정답을 맞힌 횟수 (시간 순으로 누적해서 계산)
         '''
-        User_Tag_Sum = df.groupby(['userID', 'KnowledgeTag'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int16')
+        User_Tag_Sum = df.groupby(['userID', 'KnowledgeTag'])['answerCode'].transform(lambda x : x.cumsum().shift(1)).fillna(0).astype('int32')
         return User_Tag_Sum.values
 
     def Feature_User_Tag_Count(self, df) :
         '''
         유저의 `KnowledgeTag` 별 문제를 푼 횟수 (시간 순으로 누적해서 계산)
         '''
-        User_Tag_Count = df.groupby(['userID', 'KnowledgeTag'])['answerCode'].cumcount().astype('int16')
+        User_Tag_Count = df.groupby(['userID', 'KnowledgeTag'])['answerCode'].cumcount().astype('int32')
         return User_Tag_Count.values
     
     def Feature_User_Tag_Acc(self, df) :

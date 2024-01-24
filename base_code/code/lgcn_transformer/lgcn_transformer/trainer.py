@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score
 import torch
 from torch import nn
 from .model import CustomModel
-from .datasets import TransformerDataset
+from .datasets import LgcnTfDataset
 from torch.utils.data import DataLoader
 import wandb
 from tqdm import tqdm 
@@ -17,8 +17,8 @@ from .utils import get_logger, logging_conf
 logger = get_logger(logger_conf=logging_conf)
 
 
-def build(cfg):
-    model = CustomModel(cfg)
+def build(merged_node, cfg):
+    model = CustomModel(merged_node, cfg)
 
     if cfg.train:
         pass
@@ -29,11 +29,11 @@ def build(cfg):
         model.load_state_dict(model_state["model"])
 
     model = model.to(cfg.device)
+
     return model
 
 
 def run(model: nn.Module, prepared, cfg):
-    model.train()
     model_dir=cfg.model_dir
     os.makedirs(name=model_dir, exist_ok=True)
 
@@ -42,8 +42,8 @@ def run(model: nn.Module, prepared, cfg):
     train_cfg = prepared['train_cfg']
     valid_cfg = prepared['valid_cfg']
 
-    train_data = TransformerDataset(train_data, train_cfg)
-    valid_data = TransformerDataset(valid_data, valid_cfg)
+    train_data = LgcnTfDataset(train_data, train_cfg)
+    valid_data = LgcnTfDataset(valid_data, valid_cfg)
 
     train_loader = DataLoader(train_data, batch_size=cfg.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_data, batch_size=cfg.batch_size, shuffle=True)
@@ -51,7 +51,6 @@ def run(model: nn.Module, prepared, cfg):
     n_epochs=cfg.n_epochs
     learning_rate=cfg.lr
     optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
-
     loss_fun = nn.BCEWithLogitsLoss()
 
     logger.info(f"Training Started : n_epochs={n_epochs}")
@@ -88,17 +87,17 @@ def train(model: nn.Module, train_loader, optimizer: torch.optim.Optimizer, loss
     target_list = []
     output_list = []
 
-    for cate_x, cont_x, mask, target in tqdm(train_loader, mininterval=1):
+    for data in tqdm(train_loader, mininterval=1):
         
         optimizer.zero_grad()
-        output = model(cate_x, cont_x, mask)
+        output = model(data)
 
-        loss = loss_fun(output, target)
+        loss = loss_fun(output, data['target'])
         loss.backward()
         optimizer.step()
 
         total_loss += loss.item()
-        target_list.append(target.detach().cpu())
+        target_list.append(data['target'].detach().cpu())
         output_list.append(output.detach().cpu())
 
     target_list = torch.concat(target_list).numpy()
@@ -118,11 +117,11 @@ def validate(model: nn.Module, valid_loader):
     with torch.no_grad():
         target_list = []
         output_list = []
-        for cate_x, cont_x, mask, target in tqdm(valid_loader, mininterval=1):
-            output = model(cate_x, cont_x, mask)
-            target_list.append(target.detach().cpu())
+        for data in tqdm(valid_loader, mininterval=1):
+            output = model(data)
+            target_list.append(data['target'].detach().cpu())
             output_list.append(output.detach().cpu())
-        
+    
     target_list = torch.concat(target_list).numpy()
     output_list = torch.concat(output_list).numpy()
 
@@ -137,14 +136,14 @@ def inference(cfg, model: nn.Module, prepared, output_dir: str):
     test_data = prepared['test_data']
     test_cfg = prepared['test_cfg']
 
-    test_data = TransformerDataset(test_data, test_cfg)
+    test_data = LgcnTfDataset(test_data, test_cfg)
     test_loader = DataLoader(test_data, batch_size=cfg.batch_size, shuffle=False)
 
     model.eval()
     with torch.no_grad():
         output_list = []
-        for cate_x, cont_x, mask, target in tqdm(test_loader, mininterval=1):
-            output = model(cate_x, cont_x, mask)
+        for data in tqdm(test_loader, mininterval=1):
+            output = model(data)
             output_list.append(output.cpu().detach().numpy())
         
     output_list = np.concatenate(output_list).flatten()

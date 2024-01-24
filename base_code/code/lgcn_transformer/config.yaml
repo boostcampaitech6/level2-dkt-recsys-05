@@ -5,23 +5,23 @@
 "model_name" : "best_model.pt"
 "output_dir" : "./outputs/"
 
-"batch_size" : 256
+"batch_size" : 128
 "dropout" : 0.2
 "hidden_size" : 128
 "emb_size" : 128
 "n_layers" : 1
-"n_head" : 8
+"n_head" : 1
 "seq_len" : 256
 "target_size" : 1
-"n_epochs" : 5 
+"n_epochs" : 5
 "lr" : 0.001
+"hop" : 3
 
 "cate_cols" :
 - "userID"
 - "assessmentItemID"
 - "KnowledgeTag"
 - "testCode"
-
 # - "testNum"
 # - "problemID"
 # - "Real_Solved"
@@ -43,7 +43,6 @@
 - "month"
 - "day"
 - "hour"
-
 # - "dow"
 # - "weekday"
 - "ElapsedTime"

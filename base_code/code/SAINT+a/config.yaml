@@ -41,6 +41,6 @@ warmup_step : 4000
 
 # wandb
 # https://wandb.ai/authorize
-key : '95d4fb2d02fe3866b9b32239df088d24cccd2efe'
+key : 
 project : 'SAINT+a'
 runname : 'SAINT+a_base'

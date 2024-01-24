@@ -21,7 +21,7 @@ def save_model(cfg, model) :
 
 def train(cfg) :
     
-    wandb.run.name = cfg['runname'] + str(datetime.datetime.now().strftime('%y%m%d_%H%M%S'))
+    wandb.run.name = cfg['runname'] + '_' + str(datetime.datetime.now().strftime('%y%m%d_%H%M%S'))
     wandb.run.save()
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -34,7 +34,6 @@ def train(cfg) :
     seq_len = cfg['seq_len']
     n_question = cfg['n_question']
     n_test = cfg['n_test']
-    n_answer = cfg['n_answer']
 
     dropout = cfg['dropout']
     n_epochs = cfg['n_epochs']
@@ -78,7 +77,7 @@ def train(cfg) :
     best_auc = 0
     count = 0
     for epoch in range(n_epochs) :
-        print(f'============ Epoch {epoch + 1} Training ============')
+        print(f'============ Epoch {epoch + 1} Training   ============')
         model.train()
         t_s = time.time()
         train_loss = []
@@ -87,6 +86,7 @@ def train(cfg) :
         
         for step, data in enumerate(train_loader) :
             item_id         = data[0].to(device).long()
+        #   test_id         = data[1].to(device).long()
             lag_time        = data[1].to(device).float()
             elapsed_time    = data[2].to(device).float()
             item_acc        = data[3].to(device).float()
@@ -96,7 +96,7 @@ def train(cfg) :
 
             opt.optimizer.zero_grad()
             
-            preds = model(item_id, lag_time, elapsed_time, item_acc, user_acc, answer_correct)
+            preds = model(item_id, lag_time, elapsed_time, item_acc, user_acc, answer_correct) # test_id
             loss_mask = (answer_correct != 0)
             preds_masked = torch.masked_select(preds, loss_mask)
             label_masked = torch.masked_select(label, loss_mask)
@@ -120,6 +120,7 @@ def train(cfg) :
 
         for step, data in enumerate(valid_loader) :
             item_id         = data[0].to(device).long()
+        #   test_id         = data[1].to(device).long()
             lag_time        = data[1].to(device).float()
             elapsed_time    = data[2].to(device).float()
             item_acc        = data[3].to(device).float()
@@ -127,7 +128,7 @@ def train(cfg) :
             answer_correct  = data[5].to(device).long()
             label           = data[6].to(device).float()
             
-            preds = model(item_id, lag_time, elapsed_time, item_acc, user_acc, answer_correct)
+            preds = model(item_id, lag_time, elapsed_time, item_acc, user_acc, answer_correct) # test_id
             loss_mask = (answer_correct != 0)
             preds_masked = torch.masked_select(preds, loss_mask)
             label_masked = torch.masked_select(label, loss_mask)
@@ -173,6 +174,6 @@ def train(cfg) :
     return best_auc
 
 if __name__== '__main__' :
-    cfg = load_config('./config.yaml')
+    cfg = load_config('../config.yaml')
     seed_everything(42)
     train(cfg)

@@ -37,7 +37,6 @@ class SaintPlus(nn.Module) :
         self.elapT_emb = nn.Linear(1, d_model, bias = False)
         self.itemAcc_emb = nn.Linear(1, d_model, bias = False)
         self.userAcc_emb = nn.Linear(1, d_model, bias = False)
-
         self.answerCorr_emb = nn.Embedding(3, d_model)
 
         self.emb_dense1 = nn.Linear(2 * d_model, d_model)
@@ -52,12 +51,13 @@ class SaintPlus(nn.Module) :
         self.FFN = FFN(d_model, d_ffn, dropout = dropout)
         self.final_layer = nn.Linear(d_model, 1)
 
-    def forward(self, item_id, lag_time, elapsed_time, item_avg, user_avg, answer_correct) :
+    def forward(self, item_id, lag_time, elapsed_time, item_acc, user_acc, answer_correct) : # test_id
+        
         device = item_id.device
         seq_len = item_id.shape[1]
 
-        item_emb = self.item_emb(item_id)
-        # test_emb = self.test_emb(test_id)
+        itemid_emb = self.item_emb(item_id)
+    #   testid_emb = self.test_emb(test_id)
 
         lag_time = torch.log(lag_time + 1)
         lag_time = lag_time.view(-1, 1)                             # [batch * seq_len, 1]
@@ -69,21 +69,21 @@ class SaintPlus(nn.Module) :
         elapsed_time = self.elapT_emb(elapsed_time)                 # [batch * seq_len, d_model]
         elapsed_time = elapsed_time.view(-1, seq_len, self.d_model) # [batch,  seq_len, d_model]
         
-        item_avg = torch.log(item_avg + 1)
-        item_avg = item_avg.view(-1, 1)                             # [batch * seq_len, 1]
-        item_avg = self.itemAcc_emb(item_avg)                       # [batch * seq_len, d_model]
-        item_avg = item_avg.view(-1, seq_len, self.d_model)         # [batch,  seq_len, d_model]
+        item_acc = torch.log(item_acc + 1)
+        item_acc = item_acc.view(-1, 1)                             # [batch * seq_len, 1]
+        item_acc = self.itemAcc_emb(item_acc)                       # [batch * seq_len, d_model]
+        item_acc = item_acc.view(-1, seq_len, self.d_model)         # [batch,  seq_len, d_model]
         
-        user_avg = torch.log(user_avg + 1)
-        user_avg = user_avg.view(-1, 1)                             # [batch * seq_len, 1]
-        user_avg = self.userAcc_emb(user_avg)                       # [batch * seq_len, d_model]
-        user_avg = user_avg.view(-1, seq_len, self.d_model)         # [batch,  seq_len, d_model]
+        user_acc = torch.log(user_acc + 1)
+        user_acc = user_acc.view(-1, 1)                             # [batch * seq_len, 1]
+        user_acc = self.userAcc_emb(user_acc)                       # [batch * seq_len, d_model]
+        user_acc = user_acc.view(-1, seq_len, self.d_model)         # [batch,  seq_len, d_model]
         
         answer_correct_emb = self.answerCorr_emb(answer_correct)
 
-        encoder_val = torch.cat((item_emb, lag_time), axis = -1)
+        encoder_val = torch.cat((itemid_emb, lag_time), axis = -1)
         encoder_val = self.emb_dense1(encoder_val)
-        decoder_val = torch.cat((lag_time, elapsed_time, item_avg, user_avg, answer_correct_emb), axis = -1)
+        decoder_val = torch.cat((lag_time, elapsed_time, item_acc, user_acc, answer_correct_emb), axis = -1)
         decoder_val = self.emb_dense2(decoder_val)
 
         pos = torch.arange(seq_len).unsqueeze(0).to(device)

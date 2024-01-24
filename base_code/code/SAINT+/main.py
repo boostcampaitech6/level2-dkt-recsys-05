@@ -10,6 +10,7 @@ from SaintPlus.inference import inference
 logger = get_logger(logging_conf)
 
 def main(cfg) :
+        
     wandb.login()
     wandb.init(project = cfg['project'], config = cfg)
     
@@ -19,13 +20,9 @@ def main(cfg) :
         
         logger.info('Preparing Data ...')
         
-        total_data = cfg['data_dir'] + cfg['total_data_name']
-        total_df = pd.read_csv(total_data)
-        Preprocess(cfg, total_df, True)
-        
-        test_data = cfg['data_dir'] + cfg['test_data_name']
-        test_df = pd.read_csv(test_data)
-        Preprocess(cfg, test_df, False)
+        total_df = pd.read_csv(cfg['data_dir'] + cfg['total_data_name'])
+        test_df = pd.read_csv(cfg['data_dir'] + cfg['test_data_name'])
+        Preprocess(cfg, total_df, test_df, scaling = cfg['scale'])
     
     else :
         logger.info('Successed Load Data')

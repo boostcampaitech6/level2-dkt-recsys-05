@@ -142,8 +142,3 @@ class CustomModel(nn.Module):
         transformer_out = self.transformer(node, data["cate_feature"], data["cont_feature"], data["mask"])
         output = self.lstm(transformer_out)
         return output
-    
-
-    def update_embedding(self):
-        node_embedding = self.LGCN.get_embedding(self.merged_node)
-        print(node_embedding[1028])

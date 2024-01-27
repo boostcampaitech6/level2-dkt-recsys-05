@@ -153,9 +153,9 @@ def ELO(data, user_feature_name = 'userID', granularity_feature_name = 'assessme
         
     
     else :
-        with open('./data/theta_estimate.json') as f :
+        with open('/data/ephemeral/data/theta_estimate.json') as f :
             theta_estimate = json.load(f)
-        with open('./data/beta_estimate.json') as f :
+        with open('/data/ephemeral/data/beta_estimate.json') as f :
             beta_estimate = json.load(f)
         print('Successfully Read User (theta) / Item (beta) parameter file.')
         return theta_estimate, beta_estimate

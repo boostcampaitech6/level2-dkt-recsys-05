@@ -1,0 +1,23 @@
+{
+    "device" : "cuda",
+    "seed" : 7,
+
+    "batch_size" : 64, 
+    "dropout" : 0.2,
+    "hidden_size" : 128,
+    "emb_size" : 128,
+    "n_heads" : 8,
+    "n_layers" : 2,
+    "seq_len" : 256,
+    "target_size" : 1,
+    "index_per_step" : 2,
+    "n_epochs" : 5, 
+    "lr" : 0.001, 
+
+    "cate_cols" : ["userID", "assessmentItemID", "testId", "KnowledgeTag"],
+    "cont_cols" : ["answerCode"],
+
+    "model_dir" : "./models/", 
+    "model_name" : "best_model.pt", 
+    "output_dir" : "./outputs/"
+}

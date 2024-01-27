@@ -1,0 +1,37 @@
+program: train.py
+method: bayes
+project: "dkt_pkw_sweep"
+metric:
+  name: valid_auc_epoch
+  goal: maximize
+parameters:
+  batch_size: 
+    distribution: int_uniform
+    min: 128
+    max: 1024
+  hidden_size :
+    values: [32, 64, 128, 256, 512]
+  emb_size :
+    distribution: int_uniform
+    min: 64
+    max: 256
+  seq_len : 
+    distribution: int_uniform
+    min: 100
+    max: 300
+  n_layers:
+    distribution: int_uniform
+    min: 1
+    max: 4
+  n_head:
+    values: [1, 2, 4, 8]
+  dropout:
+    min: 0.0
+    max: 0.5
+  lr:
+    min: 0.00001
+    max: 0.005
+  hop : 
+    [1, 2, 3, 4]
+  data_dir:
+    value: '../../../../../p2/data_FE'

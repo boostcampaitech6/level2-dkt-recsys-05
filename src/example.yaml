@@ -1,0 +1,138 @@
+seed: 42
+hpo:
+  skip: True
+  n_trials: 100
+fold:
+  skip: False
+  n_splits: 5
+device: cuda
+data_dir: /data/ephemeral/level2-dkt-recsys-05/data/
+data_preprocessed_parquet: data_preprocessed.parquet
+wandb_key: <fill in your wandb key>
+wandb_team: teemo-dkt
+wandb_project: <fill in your wandb project name>
+wandb_run_name: <fill in your wandb run name>
+xgb:
+  n_estimators: 1000
+  objective: binary:logistic
+  eval_metric: auc
+  nthread: -1
+  device: cuda
+  tree_method: hist
+  early_stopping_rounds: 10
+  random_state: 42
+lgbm:
+  n_estimators: 5000
+  objective: binary
+  metric: auc
+  device_type: gpu
+  gpu_use_dp: True
+  n_jobs: -1
+  verbose: -1
+  random_state: 42
+  early_stopping_rounds: 100
+best_params:
+  booster: dart
+  max_depth: 13
+  learning_rate: 0.05
+  min_child_weight: 6
+  gamma: 1
+  colsample_bytree: 0.5
+  lambda: 10
+  alpha: 1
+  subsample: 1.0
+  max_delta_step: 5
+use_columns:  # 아래 컬럼들을 주석처리하며 실험해보세요.
+- userID
+- assessmentItemID
+- KnowledgeTag
+- testID
+- testCode
+- testNum
+- problemID
+# - problemID_Norm
+- year
+- month
+- day
+- hour
+- dow
+- weekday
+- ElapsedTime
+- ElapsedTime_Rolling2
+- ElapsedTime_Rolling3
+- ElapsedTime_Rolling4
+- ElapsedTime_Rolling5
+- user_ElaspedTime_avg
+- item_ElaspedTime_avg
+- testID_ElaspedTime_avg
+- testCode_ElaspedTime_avg
+- testNum_ElaspedTime_avg
+- problemID_ElaspedTime_avg
+- tag_ElaspedTime_avg
+- Real_Solved
+- Correct_User_ElapsedTime
+- Wrong_User_ElapsedTime
+- user_sum
+- user_cnt
+- user_acc
+- user_itemID_sum
+- user_itemID_cnt
+- user_itemID_acc
+- user_testID_sum
+- user_testID_cnt
+- user_testID_acc
+- user_testCode_sum
+- user_testCode_cnt
+- user_testCode_acc
+- user_testNum_sum
+- user_testNum_cnt
+- user_testNum_acc
+- user_problemID_sum
+- user_problemID_cnt
+- user_problemID_acc
+- user_tag_sum
+- user_tag_cnt
+- user_tag_acc
+- itemID_sum
+- itemID_cnt
+- itemID_acc
+- testID_sum
+- testID_cnt
+- testID_acc
+- testCode_sum
+- testCode_cnt
+- testCode_acc
+- testNum_sum
+- testNum_cnt
+- testNum_acc
+- problemID_sum
+- problemID_cnt
+- problemID_acc
+- tag_sum
+- tag_cnt
+- tag_acc
+- itemID_high_freq
+- testID_high_freq
+- testCode_high_freq
+- testNum_high_freq
+- problemID_high_freq
+- tag_high_freq
+- user_past_solved
+# - relative_correct_rate
+- is_correct_before1
+- correct_rate_before1
+- relative_correct_rate_before1
+- is_correct_before2
+- correct_rate_before2
+- relative_correct_rate_before2
+- is_correct_before3
+- correct_rate_before3
+- relative_correct_rate_before3
+- is_correct_before4
+- correct_rate_before4
+- relative_correct_rate_before4
+- is_correct_before5
+- correct_rate_before5
+- relative_correct_rate_before5
+- theta
+- beta
